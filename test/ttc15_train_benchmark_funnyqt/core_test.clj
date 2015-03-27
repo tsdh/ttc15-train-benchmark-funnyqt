@@ -7,13 +7,17 @@
             [clojure.java.io :as io]
             [ttc15-train-benchmark-funnyqt.core :refer :all]))
 
+(defn all-models []
+  (for [^java.io.File f (file-seq (io/file "test/models/"))
+        :when (and (.isFile f)
+                   (re-matches #".*\.railway$" (.getPath f)))]
+    f))
+
 (deftest test-all
   (doseq [rule [pos-length switch-sensor switch-set route-sensor semaphore-neighbor]]
     (println "Rule" (u/fn-name rule))
     (println "====")
-    (doseq [^java.io.File f [(io/file "test/models/railway-512.railway")]
-            #_(file-seq (io/file "test/models/"))
-            :when (.isFile f)]
+    (doseq [^java.io.File f (all-models)]
       (println "File:" (.getPath f))
       (let [g (u/timing "Loading time: %T" (load-resource f))
             _ (println (format "Model size:   %s elements\n              %s refs"
@@ -30,9 +34,7 @@
   (doseq [rule [pos-length switch-sensor switch-set route-sensor semaphore-neighbor]]
     (println "Rule" (u/fn-name rule))
     (println "====")
-    (doseq [^java.io.File f [(io/file "test/models/railway-512.railway")]
-            #_(file-seq (io/file "test/models/"))
-            :when (.isFile f)]
+    (doseq [^java.io.File f (all-models)]
       (println "File:" (.getPath f))
       (let [g (u/timing "Loading time: %T" (load-resource f))]
         (println (format "Model size:   %s elements\n              %s refs"
@@ -50,9 +52,7 @@
   (doseq [rule [pos-length switch-sensor switch-set route-sensor semaphore-neighbor]]
     (println "Rule" (u/fn-name rule))
     (println "====")
-    (doseq [^java.io.File f [(io/file "test/models/railway-512.railway")]
-            #_(file-seq (io/file "test/models/"))
-            :when (.isFile f)]
+    (doseq [^java.io.File f (all-models)]
       (println "File:" (.getPath f))
       (let [g (u/timing "Loading time: %T" (load-resource f))]
         (println (format "Model size:   %s elements\n              %s refs"
