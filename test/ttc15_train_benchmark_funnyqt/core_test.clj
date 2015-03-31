@@ -13,23 +13,25 @@
                    (re-matches #".*\.railway$" (.getPath f)))]
     f))
 
-(deftest test-all
-  (doseq [rule-test [pos-length-test switch-sensor-test switch-set-test
-                     route-sensor-test semaphore-neighbor-test]]
-    (println "Rule" (u/fn-name rule-test))
-    (println "====")
-    (doseq [^java.io.File f (all-models)]
-      (println "File:" (.getPath f))
-      (let [g (u/timing "Loading time: %T" (load-resource f))
-            _ (println (format "Model size:   %s elements\n              %s refs"
-                               (count (eallcontents g))
-                               (count (epairs g))))
-            r (u/timing "Query time:   %T"
-                        (rule-test g))]
-        (println (format "Match count:  %s" (count r)))
-        (u/timing       "Repair time:  %T"
-                        (doseq [t r] (t))))
-      (println))))
+(def rule-test-fns [;;pos-length-test switch-sensor-test switch-set-test
+                    route-sensor-test semaphore-neighbor-test])
+
+#_(deftest test-all
+    (doseq [rule-test rule-test-fns]
+      (println "Rule" (u/fn-name rule-test))
+      (println "====")
+      (doseq [^java.io.File f (all-models)]
+        (println "File:" (.getPath f))
+        (let [g (u/timing "Loading time: %T" (load-resource f))
+              _ (println (format "Model size:   %s elements\n              %s refs"
+                                 (count (eallcontents g))
+                                 (count (epairs g))))
+              r (u/timing "Query time:   %T"
+                          (rule-test g))]
+          (println (format "Match count:  %s" (count r)))
+          (u/timing       "Repair time:  %T"
+                          (doseq [t r] (t))))
+        (println))))
 
 (defn load-and-check [rule-test-fn f]
   (u/timing "Load & Check:     %T"
@@ -37,9 +39,8 @@
               [g (rule-test-fn g)])))
 
 (deftest test-fixed
-  (doseq [rule-test [pos-length-test switch-sensor-test switch-set-test
-                     route-sensor-test semaphore-neighbor-test]]
-    (println "Rule" (u/fn-name rule-test))
+  (doseq [rule-test rule-test-fns]
+    (println "Rule" (u/fn-name rule-test) "(fixed)")
     (println "====")
     (doseq [^java.io.File f (all-models)]
       (println "File:" (.getPath f))
@@ -53,9 +54,8 @@
       (println))))
 
 (deftest test-proportional
-  (doseq [rule-test [;;pos-length-test switch-sensor-test switch-set-test
-                     route-sensor-test semaphore-neighbor-test]]
-    (println "Rule" (u/fn-name rule-test))
+  (doseq [rule-test rule-test-fns]
+    (println "Rule" (u/fn-name rule-test) "(proportional)")
     (println "====")
     (doseq [^java.io.File f (all-models)]
       (println "File:" (.getPath f))
