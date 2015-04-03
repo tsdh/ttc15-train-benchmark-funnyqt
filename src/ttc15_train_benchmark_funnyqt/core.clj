@@ -35,8 +35,6 @@
 (defrule ^:forall ^:recheck ^:transducers route-sensor [g]
   [route<Route> -<:follows>-> <> -<:switch>-> sw
    -<:sensor>-> s --!<> route]
-  (when (= route (econtainer s))
-    (println "I'm a wrong match!" route (funnyqt.query/member? route #{(econtainer s)})))
   (eunset! sw :sensor))
 
 (defrule ^:forall ^:recheck ^:transducers semaphore-neighbor [g]
