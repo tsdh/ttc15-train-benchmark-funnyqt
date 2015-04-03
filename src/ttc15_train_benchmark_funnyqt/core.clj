@@ -14,7 +14,7 @@
 
 (defrule pos-length {:forall true} [g]
   [s<Segment>
-   :when (<= (eget s :length) 0)]
+   :when (<= (eget-raw s :length) 0)]
   (eset! s :length (inc (- (eget-raw s :length)))))
 
 (defn pos-length-test [g]
