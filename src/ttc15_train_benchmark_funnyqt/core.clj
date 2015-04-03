@@ -21,7 +21,7 @@
   (as-test (pos-length g)))
 
 (defrule switch-sensor {:forall true, :recheck true} [g]
-  [sw<Switch> --!<> <Sensor>]
+  [sw<Switch> -!<:sensor>-> <>]
   (eset! sw :sensor (ecreate! nil 'Sensor)))
 
 (defn switch-sensor-test [g]
@@ -38,18 +38,18 @@
 (defn switch-set-test [g]
   (as-test (switch-set g)))
 
-(defrule route-sensor {:forall true, :recheck true} [g]
-  [route<Route> <>-- <SwitchPosition> -<:switch>-> sw
-   --<> s<Sensor> --!<> route]
+(defrule route-sensor {:forall true, :recheck true, :transducers true} [g]
+  [route<Route> -<:follows>-> <> -<:switch>-> sw
+   -<:sensor>-> s --!<> route]
   (eunset! sw :sensor))
 
 (defn route-sensor-test [g]
   (as-test (route-sensor g)))
 
-(defrule semaphore-neighbor {:forall true, :recheck true} [g]
+(defrule semaphore-neighbor {:forall true, :recheck true, :transducers true} [g]
   [route1<Route> -<:exit>-> sem
-   route1 <>-- <Sensor> <>-- <>
-   -<:connectsTo>-> <> --<> <Sensor>
+   route1 -<:definedBy>-> <> -<:elements>-> <>
+   -<:connectsTo>-> <> -<:sensor>-> <>
    --<> route2<Route> -!<:entry>-> sem
    :when (not= route1 route2)]
   (eunset! route1 :exit))
