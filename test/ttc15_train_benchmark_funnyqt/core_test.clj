@@ -31,6 +31,7 @@
       (println "File:" (.getPath f))
       (dotimes [run runs]
         (println "Run:" (inc run))
+        (System/gc)
         (let [g (u/timing "Loading time: %T" (load-resource f))
               _ (println (format "Model size:   %s elements\n              %s refs"
                                  (count (eallcontents g))
@@ -55,6 +56,7 @@
       (println "File:" (.getPath f))
       (dotimes [run runs]
         (println "Run:" (inc run))
+        (System/gc)
         (let [[g results] (load-and-check rule-test f)]
           (u/timing "Repair & Recheck: %T"
                     (loop [i 10, r results]
@@ -72,6 +74,7 @@
       (println "File:" (.getPath f))
       (dotimes [run runs]
         (println "Run:" (inc run))
+        (System/gc)
         (let [[g results] (load-and-check rule-test f)]
           (u/timing "Repair & Recheck: %T"
                     (loop [i 10, r results]
