@@ -64,19 +64,15 @@
 
 ;;* Match Comparator
 
-(def match-comparator
-  (let [c (fn [t1 t2]
-            (loop [m1 (vals (:match (meta t1)))
-                   m2 (vals (:match (meta t2)))]
-              (if (seq m1)
-                (let [r (compare (eget (first m1) :id)
-                                 (eget (first m2) :id))]
-                  (if (zero? r)
-                    (recur (rest m1) (rest m2))
-                    r))
-                (funnyqt.utils/errorf "These two matches compare to zero: %s %s"
-                                      (:match (meta t1))
-                                      (:match (meta t2))))))]
-    (reify java.util.Comparator
-      (compare [this a b]
-        (c a b)))))
+(defn match-comparator [t1 t2]
+  (loop [m1 (vals (:match (meta t1)))
+         m2 (vals (:match (meta t2)))]
+    (if (seq m1)
+      (let [r (compare (eget (first m1) :id)
+                       (eget (first m2) :id))]
+        (if (zero? r)
+          (recur (rest m1) (rest m2))
+          r))
+      (funnyqt.utils/errorf "These two matches compare to zero: %s %s"
+                            (:match (meta t1))
+                            (:match (meta t2))))))
