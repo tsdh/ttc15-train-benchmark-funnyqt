@@ -5,81 +5,92 @@
             [funnyqt.utils :as u]
             [clojure.test :refer :all]
             [clojure.java.io :as io]
+            [clojure.string :as str]
             [ttc15-train-benchmark-funnyqt.core :refer :all]))
 
+(def model-sizes [1 2 4 8 16])
+(def runs 2)
+(def rules [
+            pos-length
+            switch-sensor
+            switch-set
+            route-sensor
+            semaphore-neighbor
+            ])
+
+(defn model-regexp []
+  (re-pattern (str ".*-("
+                   (str/join "|" (map str model-sizes))
+                   ")\\.railway$")))
+
 (defn all-models []
-  (for [^java.io.File f (file-seq (io/file "test/models/"))
+  (for [^java.io.File f (sort (fn [^java.io.File a ^java.io.File b]
+                                (if (< (count (.getName a))
+                                       (count (.getName b)))
+                                  -1
+                                  (compare (.getName a) (.getName b))))
+                              (file-seq (io/file "test/models/")))
         :when (and (.isFile f)
-                   (re-matches #".*\.railway$" (.getPath f)))]
+                   (re-matches (model-regexp) (.getPath f)))]
     f))
 
-(def rule-test-fns [
-                    pos-length-test
-                    switch-sensor-test
-                    switch-set-test
-                    route-sensor-test
-                    semaphore-neighbor-test
-                    ])
-
-(def runs 2)
-
 (deftest test-all
-  (doseq [rule-test rule-test-fns]
-    (println "Rule" (u/fn-name rule-test))
+  (doseq [rule rules]
+    (println "Rule" (u/fn-name rule))
     (println "====")
     (doseq [^java.io.File f (all-models)]
-      (println "File:" (.getPath f))
+      (println "  File:" (.getPath f))
       (dotimes [run runs]
-        (println "Run:" (inc run))
+        (println "    Run:" (inc run))
         (System/gc)
-        (let [g (u/timing "Loading time: %T" (load-resource f))
-              _ (println (format "Model size:   %s elements\n              %s refs"
+        (let [g (u/timing "    Loading time: %T" (load-resource f))
+              _ (println (format "    Model size:   %s elements\n              %s refs"
                                  (count (eallcontents g))
                                  (count (epairs g))))
-              r (u/timing "Query time:   %T"
-                          (rule-test g))]
-          (println (format "Match count:  %s" (count r)))
-          (u/timing       "Repair time:  %T"
+              r (u/timing "    Query time:   %T"
+                          (call-rule-as-test rule g))]
+          (println (format "    Match count:  %s" (count r)))
+          (u/timing       "    Repair time:  %T"
                           (doseq [t r] (t)))))
       (println))))
 
-(defn load-and-check [rule-test-fn f]
-  (u/timing "Load & Check:     %T"
+(defn load-and-check [rule f]
+  (u/timing "    Load & Check:     %T"
             (let [g (load-resource f)]
-              [g (rule-test-fn g)])))
+              [g (call-rule-as-test rule g)])))
 
 (deftest test-fixed
-  (doseq [rule-test rule-test-fns]
-    (println "Rule" (u/fn-name rule-test) "(fixed)")
+  (doseq [rule rules]
+    (println "Rule" (u/fn-name rule) "(fixed)")
     (println "====")
     (doseq [^java.io.File f (all-models)]
-      (println "File:" (.getPath f))
+      (println "  File:" (.getPath f))
       (dotimes [run runs]
-        (println "Run:" (inc run))
+        (println "    Run:" (inc run))
         (System/gc)
-        (let [[g results] (load-and-check rule-test f)]
-          (u/timing "Repair & Recheck: %T"
+        (let [[g results] (load-and-check rule f)]
+          (u/timing "    Repair & Recheck: %T"
                     (loop [i 10, r results]
                       (doseq [t (take 10 r)]
                         (t))
                       (when (pos? i)
-                        (recur (dec i) (rule-test g)))))))
+                        (recur (dec i) (call-as-test rule g)))))))
       (println))))
 
 (deftest test-proportional
-  (doseq [rule-test rule-test-fns]
-    (println "Rule" (u/fn-name rule-test) "(proportional)")
+  (doseq [rule rules]
+    (println "Rule" (u/fn-name rule) "(proportional)")
     (println "====")
     (doseq [^java.io.File f (all-models)]
-      (println "File:" (.getPath f))
+      (println "  File:" (.getPath f))
       (dotimes [run runs]
-        (println "Run:" (inc run))
+        (println "    Run:" (inc run))
         (System/gc)
-        (let [[g results] (load-and-check rule-test f)]
-          (u/timing "Repair & Recheck: %T"
+        (let [[g results] (load-and-check rule f)]
+          (u/timing "    Repair & Recheck: %T"
                     (loop [i 10, r results]
                       (doseq [t (take (/ (count r) 10) r)]
                         (t))
                       (when (pos? i)
-                        (recur (dec i) (rule-test g)))))))
+                        (recur (dec i) (call-rule-as-test rule g)))))))
       (println))))
