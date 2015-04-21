@@ -10,3 +10,12 @@ pom.xml.asc
 .hgignore
 .hg/
 *.railway
+doc/auto/
+doc/_minted-ttc-train-benchmark
+doc/ttc-train-benchmark.aux
+doc/ttc-train-benchmark.bbl
+doc/ttc-train-benchmark.blg
+doc/ttc-train-benchmark.log
+doc/ttc-train-benchmark.out
+doc/ttc-train-benchmark.pag
+doc/ttc-train-benchmark.synctex.gz

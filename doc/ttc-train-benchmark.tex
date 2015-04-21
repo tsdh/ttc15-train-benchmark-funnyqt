@@ -1,0 +1,158 @@
+\documentclass[submission]{eptcs}
+\providecommand{\event}{TTC 2015}
+
+\usepackage[T1]{fontenc}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{paralist}
+\usepackage[cache]{minted}
+\newminted{clojure}{fontsize=\fontsize{8}{8},linenos,numbersep=3pt,numberblanklines=false}
+\newmintinline{clojure}{fontsize=\footnotesize}
+\newcommand{\code}{\clojureinline}
+
+\title{Solving the TTC Train Benchmark Case with FunnyQT}
+\author{Tassilo Horn
+  \institute{Institute for Software Technology, University Koblenz-Landau, Germany}
+  \email{horn@uni-koblenz.de}}
+
+\def\titlerunning{Solving the TTC Train Benchmark Case with FunnyQT}
+\def\authorrunning{T. Horn}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  FunnyQT is a model querying and model transformation library for the
+  functional Lisp-dialect Clojure providing a rich and efficient querying and
+  transformation API.  This paper describes the FunnyQT solution to the TTC
+  2015 Train Benchmark transformation case which solves all core tasks and all
+  extension tasks.
+\end{abstract}
+
+
+\section{Introduction}
+\label{sec:introduction}
+
+This paper describes the FunnyQT\footnote{\url{http://funnyqt.org}}
+~\cite{Horn2013MQWFQ} solution of the TTC 2015 Train Benchmark
+Case~\cite{train-benchmark-case-desc}.  All core and extension tasks have been
+solved.  The solution project is available on
+Github\footnote{\url{https://github.com/tsdh/ttc15-train-benchmark-funnyqt}},
+and it is set up for easy reproduction on a SHARE image\footnote{\url{FIXME}}.
+
+FunnyQT is a model querying and transformation library for the functional Lisp
+dialect Clojure\footnote{\url{http://clojure.org}}.  Queries and
+transformations are plain Clojure programs using the features provided by the
+FunnyQT API.  This API is structured into several task-specific
+sub-APIs/namespaces, e.g., there is a namespace \emph{funnyqt.in-place}
+containing constructs for writing in-place transformations, a namespace
+\emph{funnyqt.model2model} containing constructs for model-to-model
+transformations, a namespace \emph{funnyqt.bidi} containing constructs for
+bidirectional transformations, and so forth.
+
+As a Lisp, Clojure provides strong metaprogramming capabilities that are
+exploited by FunnyQT in order to define several \emph{embedded domain-specific
+  languages} (DSL, \cite{book:Fowler2010DSL}) for different tasks.  For
+example, the pattern matching/in-place transformation rule constructs used in
+this solution is provided in terms of a task-oriented DSL.
+
+
+\section{Solution Description}
+\label{sec:solution-description}
+
+\paragraph{Task 1: PosLength.}
+
+\begin{clojurecode}
+(defrule ^:forall ^:recheck pos-length [g]
+  [segment<Segment>
+   :when (<= (eget-raw segment :length) 0)]
+  (eset! segment :length (inc (- (eget-raw segment :length)))))
+\end{clojurecode}
+
+
+\paragraph{Task 2: SwitchSensor.}
+
+\begin{clojurecode*}{firstnumber=5}
+(defrule ^:forall ^:recheck switch-sensor [g]
+  [sw<Switch> -!<:sensor>-> <>]
+  (eset! sw :sensor (ecreate! nil 'Sensor)))
+\end{clojurecode*}
+
+
+\paragraph{Task 3: SwitchSet.}
+
+\begin{clojurecode*}{firstnumber=8}
+(def Signal-GO (eenum-literal 'Signal.GO))
+
+(defrule ^:forall ^:recheck switch-set [g]
+  [route<Route> -<:entry>-> semaphore
+   :when (= (eget-raw semaphore :signal) Signal-GO)
+   route -<:follows>-> swp -<:switch>-> sw
+   :let [cur-pos (eget-raw swp :position)]
+   :when (not= (eget-raw sw :currentPosition) cur-pos)]
+  (eset! sw :currentPosition cur-pos))
+\end{clojurecode*}
+
+
+\paragraph{Extension Task 1: RouteSensor.}
+
+\begin{clojurecode*}{firstnumber=16}
+(defrule ^:forall ^:recheck route-sensor [g]
+  [route<Route> -<:follows>-> swp -<:switch>-> sw
+   -<:sensor>-> sensor --!<> route]
+  (eunset! sw :sensor))
+\end{clojurecode*}
+
+
+\paragraph{Extension Task 2: SemaphoreNeighbor.}
+
+\begin{clojurecode*}{firstnumber=20}
+(defrule ^:forall ^:recheck semaphore-neighbor [g]
+  [route1<Route> -<:exit>-> semaphore
+   route1 -<:definedBy>-> sensor1 -<:elements>-> te1
+   -<:connectsTo>-> te2 -<:sensor>-> sensor2
+   --<> route2<Route> -!<:entry>-> semaphore
+   :when (not= route1 route2)]
+  (eunset! route1 :exit))
+\end{clojurecode*}
+
+
+\paragraph{Calling rules with deferred execution of actions.}
+
+\begin{clojurecode*}{firstnumber=27}
+(defn call-rule-as-test [r g]
+  (as-test (r g)))
+\end{clojurecode*}
+
+
+\paragraph{Comparing matches.}
+
+\begin{clojurecode*}{firstnumber=29}
+(defn make-match-comparator [& kws]
+  (fn [t1 t2]
+    (loop [kws kws]
+      (if (seq kws)
+        (let [m1 ((first kws) (:match (meta t1)))
+              m2 ((first kws) (:match (meta t2)))]
+          (let [r (compare (eget (first m1) :id)
+                           (eget (first m2) :id))]
+            (if (zero? r)
+              (recur (rest kws))
+              r)))
+        (errorf "These two matches compare to zero: %s %s"
+                (:match (meta t1))
+                (:match (meta t2)))))))
+\end{clojurecode*}
+
+\section{Evaluation and Conclusion}
+\label{sec:evaluation}
+
+\bibliographystyle{eptcs}
+\bibliography{ttc-train-benchmark}
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% TeX-command-extra-options: "-shell-escape"
+%%% End:
