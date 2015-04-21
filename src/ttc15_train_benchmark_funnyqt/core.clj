@@ -57,8 +57,7 @@
       (if (seq kws)
         (let [m1 ((first kws) (:match (meta t1)))
               m2 ((first kws) (:match (meta t2)))]
-          (let [r (compare (eget (first m1) :id)
-                           (eget (first m2) :id))]
+          (let [r (compare (eget m1 :id) (eget m2 :id))]
             (if (zero? r)
               (recur (rest kws))
               r)))
