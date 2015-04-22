@@ -3,6 +3,7 @@
 
 \usepackage[T1]{fontenc}
 \usepackage{url}
+\usepackage{varioref}
 \usepackage{hyperref}
 \usepackage{paralist}
 \usepackage[cache]{minted}
@@ -38,17 +39,25 @@ This paper describes the FunnyQT\footnote{\url{http://funnyqt.org}}
 Case~\cite{train-benchmark-case-desc}.  All core and extension tasks have been
 solved.  The solution project is available on
 Github\footnote{\url{https://github.com/tsdh/ttc15-train-benchmark-funnyqt}},
-and it is set up for easy reproduction on a SHARE image\footnote{\url{FIXME}}.
+and it is set up for easy reproduction on a SHARE image\footnote{\url{FIXME:
+    add SHARE URL}}.
 
 FunnyQT is a model querying and transformation library for the functional Lisp
 dialect Clojure\footnote{\url{http://clojure.org}}.  Queries and
 transformations are plain Clojure programs using the features provided by the
 FunnyQT API.  This API is structured into several task-specific
-sub-APIs/namespaces, e.g., there is a namespace \emph{funnyqt.in-place}
-containing constructs for writing in-place transformations, a namespace
-\emph{funnyqt.model2model} containing constructs for model-to-model
-transformations, a namespace \emph{funnyqt.bidi} containing constructs for
-bidirectional transformations, and so forth.
+sub-APIs/namespaces, e.g., there is a namespace \emph{funnyqt.query} containing
+model querying functions, \emph{funnyqt.in-place} containing constructs for
+writing in-place transformations, a namespace \emph{funnyqt.model2model}
+containing constructs for model-to-model transformations, a namespace
+\emph{funnyqt.bidi} containing constructs for bidirectional transformations,
+and several more.
+
+FunnyQT is designed with extensibility in mind.  By default, it supports EMF
+\cite{Steinberg2008EEM} models and
+JGraLab\footnote{\url{http://jgralab.github.io}} TGraph models.  Support for
+other modeling frameworks can be added without having to touch FunnyQT's
+internals.
 
 As a Lisp, Clojure provides strong metaprogramming capabilities that are
 exploited by FunnyQT in order to define several \emph{embedded domain-specific
@@ -60,7 +69,13 @@ this solution is provided in terms of a task-oriented DSL.
 \section{Solution Description}
 \label{sec:solution-description}
 
+In this section, the individual tasks are discussed one by one.  They are all
+implemented as in-place transformation rules supported by FunnyQT's
+\emph{funnyqt.in-place} transformation DSL.
+
 \paragraph{Task 1: PosLength.}
+
+The transformation rule realizing the \emph{PosLength} task is given below.
 
 \begin{clojurecode}
 (defrule ^:forall ^:recheck pos-length [g]
@@ -69,8 +84,38 @@ this solution is provided in terms of a task-oriented DSL.
   (eset! segment :length (inc (- (eget-raw segment :length)))))
 \end{clojurecode}
 
+The \code|defrule| macro defines a new in-place transformation rule with the
+given name (\code|pos-length|), formal parameters (\code|[g]|), a pattern
+(\code|[segment<Segment>...]|), and one or many actions to be applied to the
+pattern's matches (\code|(eset! ...)|).  The first formal parameter must denote
+the model the rule is applied to, so here the argument \code|g| denotes the
+train model when the rule is applied using \code|(pos-length my-train-model)|.
+
+The pattern matches a node called \code|segment| of metamodel class
+\code|Segment|.  Additionally, the segment's length must be less or equal to
+zero.
+
+The action says that the segment's \code|length| attribute should be set to the
+incremented negation of the current length.
+
+The normal semantics of applying a rule is to find one single match of the
+rule's pattern and then execute the rule's actions on the matched elements.
+The modifier \code|^:forall| changes this behavior to finding all matches
+first, and then applying the actions to each match one after the other.
+FunnyQT automatically parallelizes the pattern matching process of such
+forall-rules under certain circumstances like the JVM having more than one CPU
+available and the pattern declaring at least two elements to be matched.
+
+The \code|^:recheck| modifier causes the rule to re-check if a pre-calculated
+match is still conforming the pattern just before executing the rule's actions
+on it.  This can be needed for forall-rules whose actions possibly invalidate
+matches of the same rule's pattern, e.g., when the application of the action to
+a match \(m_i\) cause another match \(m_j\) to be no valid match any longer.
+
 
 \paragraph{Task 2: SwitchSensor.}
+
+The transformation rule realizing the \emph{SwitchSensor} task is given below.
 
 \begin{clojurecode*}{firstnumber=5}
 (defrule ^:forall ^:recheck switch-sensor [g]
@@ -78,8 +123,18 @@ this solution is provided in terms of a task-oriented DSL.
   (eset! sw :sensor (ecreate! nil 'Sensor)))
 \end{clojurecode*}
 
+It matches a \code|Switch| \code|sw| which is not contained by some sensor.
+The exclamation mark of the edge symbol \code|-!<:sensor>->| specifies that no
+such reference must exist, i.e., it specifies a negative application condition.
+
+The action fixes this problem simply by creating a new \code|Sensor| and
+assigning that to the switch \code|sw|.
+
 
 \paragraph{Task 3: SwitchSet.}
+
+The \code|switch-set| rule realizes the \emph{SwitchSet} task.  Its definition
+is given below.
 
 \begin{clojurecode*}{firstnumber=8}
 (def Signal-GO (eenum-literal 'Signal.GO))
@@ -93,8 +148,27 @@ this solution is provided in terms of a task-oriented DSL.
   (eset! sw :currentPosition cur-pos))
 \end{clojurecode*}
 
+It matches a \code|Route| with its entry semaphore where the semaphore's signal
+is \code|Signal.GO|.  The route follows some switch position whose switch's
+current position is different from that of the switch position.
+
+The fix is to set the switch's current position to the position of the switch
+position \code|swp|.
+
+Note that there are no metamodel types specified for the elements
+\code|semaphore|, \code|swp|, and \code|sw| because those are already defined
+implicitly by the references leading to them, e.g., all elements referenced by
+a route's \code|follows| can only be instances of \code|SwitchPosition|
+according to the metamodel.  Thus, FunnyQT doesn't require the transformation
+writer to encode tautologies in her patterns\footnote{In fact, if there are
+  types specified, those will be checked.  So omitting them when they are not
+  needed also results in slightly faster patterns.}.
+
 
 \paragraph{Extension Task 1: RouteSensor.}
+
+The extension task \emph{RouteSensor} is realized by the \code|route-sensor|
+rule given below.
 
 \begin{clojurecode*}{firstnumber=16}
 (defrule ^:forall ^:recheck route-sensor [g]
@@ -117,7 +191,8 @@ this solution is provided in terms of a task-oriented DSL.
 \end{clojurecode*}
 
 
-\paragraph{Calling rules with deferred execution of actions.}
+\subsection{Deferred Rule Actions}
+\label{sec:deferred-actions}
 
 \begin{clojurecode*}{firstnumber=27}
 (defn call-rule-as-test [r g]
@@ -125,7 +200,8 @@ this solution is provided in terms of a task-oriented DSL.
 \end{clojurecode*}
 
 
-\paragraph{Comparing matches.}
+\subsection{Match Comparison}
+\label{sec:match-comparison}
 
 \begin{clojurecode*}{firstnumber=29}
 (defn make-match-comparator [& kws]
@@ -155,3 +231,5 @@ this solution is provided in terms of a task-oriented DSL.
 %%% TeX-master: t
 %%% TeX-command-extra-options: "-shell-escape"
 %%% End:
+
+%  LocalWords:  parallelizes
