@@ -333,9 +333,7 @@ definition is given below.
             (if (zero? r)
               (recur (rest kws))
               r)))
-        (errorf "These two matches compare to zero: %s %s"
-                (:match (meta t1))
-                (:match (meta t2)))))))
+        0))))
 \end{clojurecode}
 
 The \code|make-match-comparator| function is to be used as follows.
@@ -365,13 +363,62 @@ extract the actual elements of the thunks' matches which are denoted by the
 first keyword.  Then line 7 compares the \textsf{id} attribute values.  If the
 comparison returns a non-zero value and thus these elements are different, the
 value is simply returned.  Otherwise, the remaining keywords are tested one
-after the other.  If no distinction between matches can be made after
-considering all given keywords, an error is signaled.
+after the other.  Only if no distinction between matches can be made after
+considering all given keywords, zero is returned.
 
 
 
 \subsection{Gluing the Solution with the Framework}
 \label{sec:gluing}
+
+Typically, open-source Clojure programs are distributed as JAR files that
+contain the source files rather than byte-compiled class files.  This solution
+does the same, and that JAR is deployed to a local Maven repository from which
+the Maven build infrastructure of the benchmark framework can pick it up.
+
+Then, in the FunnyQT glue project the rules and functions from above are
+referred to like shown in the next listing.
+
+\begin{minted}[fontsize=\fontsize{8}{8},linenos,numbersep=3pt,numberblanklines=false]{java}
+private final static String SOLUTION_NS = "ttc15-train-benchmark-funnyqt.core";
+final static IFn POS_LENGTH = Clojure.var(SOLUTION_NS, "pos-length");
+final static IFn CALL_RULE_AS_TEST = Clojure.var(SOLUTION_NS, "call-rule-as-test");
+\end{minted}
+
+\code|IFn| is a Clojure interface whose instances are Clojure functions that
+can be called using the \code|invoke()| method as can be seen in the definition
+of the glue project's \code|BenchmarkCase.check()| method shown below.
+
+\begin{minted}{java}
+@Override
+protected final Collection<Object> check() throws IOException {
+    matches = (Collection<Object>) FunnyQTBenchmarkLogic.CALL_RULE_AS_TEST
+                                   .invoke(rule, this.resource);
+    // If the rule has no matches it returns nil/null but the framework
+    // wants a Collection.
+    if (matches == null) {
+        matches = new LinkedList<Object>();
+    }
+    return matches;
+}
+\end{minted}
+
+In that code, \code|rule| is one of the rule \code|IFn|s \code|POS_LENGTH|,
+\code|SWITCH_SET|, etc.
+
+The implementation of the \code|BenchmarkCase.modify()| method is even simpler.
+
+\begin{minted}{java}
+@Override
+protected final void modify(Collection<Object> matches) {
+    for (Object m : matches) {
+        ((IFn) m).invoke();
+    }
+}
+\end{minted}
+
+Since the rules are called as tests and thus return thunks that apply the
+rule's actions, those simply need to be invoked, and that's it.
 
 
 
