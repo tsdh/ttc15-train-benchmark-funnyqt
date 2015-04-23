@@ -1,7 +1,6 @@
 (ns ^{:pattern-expansion-context :emf}
   ttc15-train-benchmark-funnyqt.core
   (:require [funnyqt.emf :refer :all]
-            [funnyqt.pmatch :refer :all]
             [funnyqt.in-place :refer :all]
             [funnyqt.utils :refer [errorf]]))
 

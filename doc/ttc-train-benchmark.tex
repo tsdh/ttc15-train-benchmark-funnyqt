@@ -23,11 +23,11 @@
 \maketitle
 
 \begin{abstract}
+  This paper describes the FunnyQT solution to the TTC 2015 Train Benchmark
+  transformation case which solves all core tasks and all extension tasks.
   FunnyQT is a model querying and model transformation library for the
   functional Lisp-dialect Clojure providing a rich and efficient querying and
-  transformation API.  This paper describes the FunnyQT solution to the TTC
-  2015 Train Benchmark transformation case which solves all core tasks and all
-  extension tasks.
+  transformation API.
 \end{abstract}
 
 
@@ -45,13 +45,12 @@ and it is set up for easy reproduction on a SHARE image\footnote{\url{FIXME:
 FunnyQT is a model querying and transformation library for the functional Lisp
 dialect Clojure\footnote{\url{http://clojure.org}}.  Queries and
 transformations are plain Clojure programs using the features provided by the
-FunnyQT API.  This API is structured into several task-specific
-sub-APIs/namespaces, e.g., there is a namespace \emph{funnyqt.query} containing
-model querying functions, \emph{funnyqt.in-place} containing constructs for
-writing in-place transformations, a namespace \emph{funnyqt.model2model}
-containing constructs for model-to-model transformations, a namespace
-\emph{funnyqt.bidi} containing constructs for bidirectional transformations,
-and several more.
+FunnyQT API.
+
+As a Lisp, Clojure provides strong metaprogramming capabilities that are
+exploited by FunnyQT in order to define several \emph{embedded domain-specific
+  languages} (DSL, \cite{book:Fowler2010DSL}) for different querying and
+transformation tasks.
 
 FunnyQT is designed with extensibility in mind.  By default, it supports EMF
 \cite{Steinberg2008EEM} models and
@@ -59,11 +58,30 @@ JGraLab\footnote{\url{http://jgralab.github.io}} TGraph models.  Support for
 other modeling frameworks can be added without having to touch FunnyQT's
 internals.
 
-As a Lisp, Clojure provides strong metaprogramming capabilities that are
-exploited by FunnyQT in order to define several \emph{embedded domain-specific
-  languages} (DSL, \cite{book:Fowler2010DSL}) for different tasks.  For
-example, the pattern matching/in-place transformation rule constructs used in
-this solution is provided in terms of a task-oriented DSL.
+The FunnyQT API is structured into the following namespaces, each namespace
+providing constructs supporting concrete querying and transformation use-cases:
+
+\begin{compactdesc}
+\item[funnyqt.emf] EMF-specific model management API
+\item[funnyqt.tg] JGraLab/TGraph-specific model management API
+\item[funnyqt.generic] Protocol-based, generic model management API
+\item[funnyqt.query] Generic querying constructs such as quantified expressions
+  or regular path expressions
+\item[funnyqt.polyfns] Constructs for defining polymorphic functions
+  dispatching on metamodel types
+\item[funnyqt.pmatch] Pattern matching constructs
+\item[funnyqt.relational] Constructs for logic-based, relational model querying
+  inspired by Prolog
+\item[funnyqt.in-place] In-place transformation rule definition constructs
+\item[funnyqt.model2model] Out-place transformation definition constructs
+  similar to ATL or QVT Operational Mappings
+\item[funnyqt.extensional] Transformation API similar to GReTL
+\item[funnyqt.bidi] Constructs for defining bidirectional transformations
+  similar to QVT Relations
+\item[funnyqt.coevo] Constructs for transformations that evolve a metamodel and
+  a conforming model simultaneously at runtime
+\end{compactdesc}
+
 
 
 \section{Solution Description}
