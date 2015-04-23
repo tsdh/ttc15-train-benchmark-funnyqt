@@ -8,7 +8,7 @@
             [clojure.string :as str]
             [ttc15-train-benchmark-funnyqt.core :refer :all]))
 
-(def model-sizes [1 2 4 8 16])
+(def model-sizes (take 13 (iterate #(* 2 %) 1)))
 (def runs 2)
 (def rules [
             pos-length
@@ -24,15 +24,19 @@
                    ")\\.railway$")))
 
 (defn all-models []
-  (for [^java.io.File f (sort (fn [^java.io.File a ^java.io.File b]
-                                (if (< (count (.getName a))
-                                       (count (.getName b)))
-                                  -1
-                                  (compare (.getName a) (.getName b))))
-                              (file-seq (io/file "test/models/")))
-        :when (and (.isFile f)
-                   (re-matches (model-regexp) (.getPath f)))]
-    f))
+  (sort (fn [^java.io.File a ^java.io.File b]
+          (u/pr-identity (format "%s %s => " (.getName a) (.getName b))
+                         (if (< (count (.getName a))
+                                (count (.getName b)))
+                           -1
+                           (if (> (count (.getName a))
+                                  (count (.getName b)))
+                             1
+                             (compare (.getName a) (.getName b))))))
+        (filter (fn [^java.io.File f]
+                  (and (.isFile f)
+                       (re-matches (model-regexp) (.getPath f))))
+                (file-seq (io/file "test/models/")))))
 
 (deftest test-all
   (doseq [rule rules]
@@ -74,7 +78,7 @@
                       (doseq [t (take 10 r)]
                         (t))
                       (when (pos? i)
-                        (recur (dec i) (call-as-test rule g)))))))
+                        (recur (dec i) (call-rule-as-test rule g)))))))
       (println))))
 
 (deftest test-proportional
