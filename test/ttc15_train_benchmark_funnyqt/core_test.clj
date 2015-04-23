@@ -25,14 +25,13 @@
 
 (defn all-models []
   (sort (fn [^java.io.File a ^java.io.File b]
-          (u/pr-identity (format "%s %s => " (.getName a) (.getName b))
-                         (if (< (count (.getName a))
-                                (count (.getName b)))
-                           -1
-                           (if (> (count (.getName a))
-                                  (count (.getName b)))
-                             1
-                             (compare (.getName a) (.getName b))))))
+          (if (< (count (.getName a))
+                 (count (.getName b)))
+            -1
+            (if (> (count (.getName a))
+                   (count (.getName b)))
+              1
+              (compare (.getName a) (.getName b)))))
         (filter (fn [^java.io.File f]
                   (and (.isFile f)
                        (re-matches (model-regexp) (.getPath f))))
