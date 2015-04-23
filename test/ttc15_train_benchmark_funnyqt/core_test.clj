@@ -47,7 +47,7 @@
         (println "    Run:" (inc run))
         (System/gc)
         (let [g (u/timing "    Loading time: %T" (load-resource f))
-              _ (println (format "    Model size:   %s elements\n              %s refs"
+              _ (println (format "    Model size:   %s elements\n                  %s refs"
                                  (count (eallcontents g))
                                  (count (epairs g))))
               r (u/timing "    Query time:   %T"
