@@ -60,6 +60,4 @@
             (if (zero? r)
               (recur (rest kws))
               r)))
-        (errorf "These two matches compare to zero: %s %s"
-                (:match (meta t1))
-                (:match (meta t2)))))))
+        0))))

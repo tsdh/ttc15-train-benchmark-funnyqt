@@ -82,6 +82,8 @@ providing constructs supporting concrete querying and transformation use-cases:
   a conforming model simultaneously at runtime
 \end{compactdesc}
 
+For solving the train benchmark case, the \emph{funnyqt.emf} and
+\emph{funnyqt.in-place} namespaces have been used.
 
 
 \section{Solution Description}
@@ -356,16 +358,15 @@ The \code|make-match-comparator| function is to be used as follows.
 every function implements the \code|java.util.Comparator| interface and thus
 any function of two arguments which returns an integer can be used as such.
 
-
-
-The returned comparator function receives two thunks \code|t1| and \code|t2|.
-Then it iterates the keywords denoting the matched element names.  Lines 5 and
-6 extract the actual elements of the thunks' matches which are denoted by the
+The returned comparator function receives two thunks \code|t1| and \code|t2|
+that where returned by calling any of the five above rules as tests.  Then it
+iterates the keywords denoting the matched element names.  Lines 5 and 6
+extract the actual elements of the thunks' matches which are denoted by the
 first keyword.  Then line 7 compares the \textsf{id} attribute values.  If the
-comparison returns a non-zero value and thus these elements are different, it
-is simply returned.  Otherwise, the remaining keywords are tested one after the
-other.  If no distinction between matches can be made after considering all
-given keywords, an error is signaled.
+comparison returns a non-zero value and thus these elements are different, the
+value is simply returned.  Otherwise, the remaining keywords are tested one
+after the other.  If no distinction between matches can be made after
+considering all given keywords, an error is signaled.
 
 
 
