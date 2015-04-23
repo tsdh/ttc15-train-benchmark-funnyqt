@@ -29,14 +29,14 @@
   [route<Route> -<:entry>-> semaphore
    :when (= (eget-raw semaphore :signal) Signal-GO)
    route -<:follows>-> swp -<:switch>-> sw
-   :let [cur-pos (eget-raw swp :position)]
-   :when (not= (eget-raw sw :currentPosition) cur-pos)]
-  (eset! sw :currentPosition cur-pos))
+   :let [swp-pos (eget-raw swp :position)]
+   :when (not= (eget-raw sw :currentPosition) swp-pos)]
+  (eset! sw :currentPosition swp-pos))
 
 (defrule ^:forall ^:recheck route-sensor [g]
   [route<Route> -<:follows>-> swp -<:switch>-> sw
    -<:sensor>-> sensor --!<> route]
-  (eunset! sw :sensor))
+  (eadd! route :definedBy sw))
 
 (defrule ^:forall ^:recheck semaphore-neighbor [g]
   [route1<Route> -<:exit>-> semaphore
@@ -44,7 +44,7 @@
    -<:connectsTo>-> te2 -<:sensor>-> sensor2
    --<> route2<Route> -!<:entry>-> semaphore
    :when (not= route1 route2)]
-  (eunset! route1 :exit))
+  (eset! route2 :entry semaphore))
 
 (defn call-rule-as-test [r g]
   (as-test (r g)))

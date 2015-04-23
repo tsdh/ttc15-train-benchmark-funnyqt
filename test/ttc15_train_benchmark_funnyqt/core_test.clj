@@ -8,7 +8,7 @@
             [clojure.string :as str]
             [ttc15-train-benchmark-funnyqt.core :refer :all]))
 
-(def model-sizes (take 13 (iterate #(* 2 %) 1)))
+(def model-sizes (drop 10 (take 11 (iterate #(* 2 %) 1))))
 (def runs 2)
 (def rules [
             pos-length
