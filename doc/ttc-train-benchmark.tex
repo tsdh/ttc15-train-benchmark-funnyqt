@@ -174,16 +174,18 @@ rule given below.
 (defrule ^:forall ^:recheck route-sensor [g]
   [route<Route> -<:follows>-> swp -<:switch>-> sw
    -<:sensor>-> sensor --!<> route]
-  (eadd! route :definedBy sw))
+  (eadd! route :definedBy sensor))
 \end{clojurecode*}
 
 It matches a \code|route| that follows some switch position \code|swp| whose
 switch \code|sw|'s \code|sensor| is not contained by the \code|route|.
 
-The repair action is to assign the switch \code|sw| to the \code|route|.
+The repair action is to assign the \code|sensor| to the \code|route|.
 
 
 \paragraph{Extension Task 2: SemaphoreNeighbor.}
+
+The second extension task
 
 \begin{clojurecode*}{firstnumber=20}
 (defrule ^:forall ^:recheck semaphore-neighbor [g]

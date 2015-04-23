@@ -36,7 +36,7 @@
 (defrule ^:forall ^:recheck route-sensor [g]
   [route<Route> -<:follows>-> swp -<:switch>-> sw
    -<:sensor>-> sensor --!<> route]
-  (eadd! route :definedBy sw))
+  (eadd! route :definedBy sensor))
 
 (defrule ^:forall ^:recheck semaphore-neighbor [g]
   [route1<Route> -<:exit>-> semaphore
