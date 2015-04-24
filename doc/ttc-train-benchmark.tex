@@ -10,7 +10,7 @@
 \usepackage{graphicx}
 \usepackage[cache]{minted}
 \newminted{clojure}{fontsize=\fontsize{8}{8},linenos,numbersep=3pt,numberblanklines=false}
-\newmintinline{clojure}{fontsize=\footnotesize}
+\newmintinline{clojure}{fontsize=\small}
 \newcommand{\code}{\clojureinline}
 
 \title{Solving the TTC Train Benchmark Case with FunnyQT}
@@ -26,10 +26,11 @@
 
 \begin{abstract}
   This paper describes the FunnyQT solution to the TTC 2015 Train Benchmark
-  transformation case which solves all core tasks and all extension tasks.
+  transformation case.  The solution solves all core and all extension tasks.
   FunnyQT is a model querying and model transformation library for the
-  functional Lisp-dialect Clojure providing a rich and efficient querying and
-  transformation API.
+  functional Lisp-dialect Clojure providing a comprehensive and efficient
+  querying and transformation API, many parts of which are provided as
+  task-oriented embedded DSLs.
 \end{abstract}
 
 
@@ -82,6 +83,9 @@ providing constructs supporting concrete querying and transformation use-cases:
   similar to QVT Relations
 \item[funnyqt.coevo] Constructs for transformations that evolve a metamodel and
   a conforming model simultaneously at runtime
+\item[funnyqt.visualization] Model visualization
+\item[funnyqt.xmltg] Constructs for querying and modifying XML files as models
+  conforming to a DOM-like metamodel
 \end{compactdesc}
 
 For solving the train benchmark case, the \emph{funnyqt.emf} and
@@ -93,7 +97,8 @@ For solving the train benchmark case, the \emph{funnyqt.emf} and
 
 In this section, the individual tasks are discussed one by one.  They are all
 implemented as in-place transformation rules supported by FunnyQT's
-\emph{funnyqt.in-place} transformation DSL.
+\emph{funnyqt.in-place} transformation DSL.  The rules' repair actions simply
+call the CRUD functions of the EMF-specific \emph{funnyqt.emf} namespace.
 
 \paragraph{Task 1: PosLength.}
 
@@ -115,10 +120,8 @@ train model when the rule is applied using \code|(pos-length my-train-model)|.
 
 The pattern matches a node called \code|segment| of metamodel class
 \code|Segment|.  Additionally, the segment's length must be less or equal to
-zero.
-
-The action says that the segment's \code|length| attribute should be set to the
-incremented negation of the current length.
+zero.  The action says that the segment's \code|length| attribute should be set
+to the incremented negation of the current length.
 
 The normal semantics of applying a rule is to find one single match of the
 rule's pattern and then execute the rule's actions on the matched elements.
@@ -128,7 +131,7 @@ FunnyQT automatically parallelizes the pattern matching process of such
 forall-rules under certain circumstances like the JVM having more than one CPU
 available and the pattern declaring at least two elements to be matched.
 
-The \code|^:recheck| modifier causes the rule to re-check if a pre-calculated
+The \code|^:recheck| modifier causes the rule to recheck if a pre-calculated
 match is still conforming the pattern just before executing the rule's actions
 on it.  This can be needed for forall-rules whose actions possibly invalidate
 matches of the same rule's pattern, e.g., when the application of the action to
@@ -145,12 +148,11 @@ The transformation rule realizing the \emph{SwitchSensor} task is given below.
   (eset! sw :sensor (ecreate! nil 'Sensor)))
 \end{clojurecode*}
 
-It matches a \code|Switch| \code|sw| which is not contained by some sensor.
-The exclamation mark of the edge symbol \code|-!<:sensor>->| specifies that no
-such reference must exist, i.e., it specifies a negative application condition.
-
-The action fixes this problem simply by creating a new \code|Sensor| and
-assigning that to the switch \code|sw|.
+It matches a switch \code|sw| which is not contained by some sensor.  The
+exclamation mark of the edge symbol \code|-!<:sensor>->| specifies that no such
+reference must exist, i.e., it specifies a negative application condition.  The
+action fixes this problem by creating a new \code|Sensor| and assigning that to
+the switch \code|sw|.
 
 
 \paragraph{Task 3: SwitchSet.}
@@ -173,18 +175,18 @@ is given below.
 It matches a \code|route| with its entry \code|semaphore| where the semaphore's
 signal is \code|Signal.GO|.  The route follows some switch position \code|swp|
 whose switch's current position is different from that of the switch position.
-
 The fix is to set the switch's current position to the position of the switch
 position \code|swp|.
 
 Note that there are no metamodel types specified for the elements
 \code|semaphore|, \code|swp|, and \code|sw| because those are already defined
 implicitly by the references leading to them, e.g., all elements referenced by
-a route's \code|follows| can only be instances of \code|SwitchPosition|
-according to the metamodel.  Thus, FunnyQT doesn't require the transformation
-writer to encode tautologies in her patterns\footnote{In fact, if there are
-  types specified, those will be checked.  So omitting them when they are not
-  needed also results in slightly faster patterns.}.
+a route's \code|follows| reference can only be instances of
+\code|SwitchPosition| according to the metamodel.  Thus, FunnyQT doesn't
+require the transformation writer to encode tautologies in her
+patterns\footnote{In fact, if there are types specified, those will be checked.
+  So omitting them when they are not needed also results in slightly faster
+  patterns.}.
 
 
 \paragraph{Extension Task 1: RouteSensor.}
@@ -200,14 +202,13 @@ rule given below.
 \end{clojurecode*}
 
 It matches a \code|route| that follows some switch position \code|swp| whose
-switch \code|sw|'s \code|sensor| is not contained by the \code|route|.
-
-The repair action is to assign the \code|sensor| to the \code|route|.
+switch \code|sw|'s \code|sensor| is not contained by the \code|route|.  The
+repair action is to assign the \code|sensor| to the \code|route|.
 
 
 \paragraph{Extension Task 2: SemaphoreNeighbor.}
 
-The second extension task \emph{SemaphoreNeighbor} is realized by the
+The second and last extension task \emph{SemaphoreNeighbor} is realized by the
 \code|semaphore-neighbor| rule defined as shown below.
 
 \begin{clojurecode*}{firstnumber=20}
@@ -225,9 +226,8 @@ Additionally, \code|route1| is defined by a sensor \code|sensor1| which
 contains some track element \code|te1| that connects to some track element
 \code|te2| whose sensor is \code|sensor2|.  This \code|sensor2| is contained by
 some other route \code|route2| which does not have \code|semaphore| as entry
-semaphore.
-
-The fix is to set \code|route2|'s entry reference to \code|semaphore|.
+semaphore.  The fix is to set \code|route2|'s entry reference to
+\code|semaphore|.
 
 
 \subsection{Deferred Rule Actions}
@@ -253,7 +253,7 @@ matches and apply its actions to each of them, when called with
 \code|as-pattern|, a rule simply returns the sequence of its matches.  With a
 normal rule, this sequence is a lazy sequence, i.e., the matches are not
 computed until they are consumed.  With a forall-rule, the sequence is fully
-realized, i.e., all matches are already precalculated.
+realized, i.e., all matches are already pre-calculated (possibly in parallel).
 
 The second FunnyQT rule application modifier is \code|as-test|, and this is
 what is highly suitable for this transformation case.  When a rule \code|r| is
@@ -261,18 +261,17 @@ applied using \code|(as-test (r model))|, it behaves almost as without modifier
 but instead of applying the rule's actions immediately, it returns a closure of
 arity zero (a so-called \emph{thunk}) which captures the rule's match and the
 rule's actions.  Invoking the thunk causes the actions to be applied on the
-match.  Thus, the the caller who applied the rule as a test gets the
-information if the rule was applicable at all, and if it was applicable, he can
-decide if he wants to apply it or not.  And when he applies it, the pattern
-matching part is already finished and only the actions are applied on the
-pre-calculated match or matches the thunk closes over.  The following snippet
-illustrates the behavior.
+match.  Thus, the caller of the rule gets the information if the rule was
+applicable at all, and if it was applicable, he can decide if he wants to apply
+it or not.  And when he applies it, the pattern matching part is already
+finished and only the actions are applied on the pre-calculated match the thunk
+closes over.  The following snippet illustrates the behavior.
 
 \begin{clojurecode*}{numbers=none}
-(if-let [thunk (as-test (rule model))]
+(if-let [thunk (as-test (r model))]
   (if (< (Math/random) 0.5)
     (thunk) ;; The rule was applicable, and here its actions are executed
-    (println "The coin toss decided to skip the rule application"))
+    (println "The coin toss decided to skip the application of the rule's matches"))
   (println "The rule is not applicable"))
 \end{clojurecode*}
 
@@ -282,11 +281,11 @@ has some metadata attached\footnote{Almost any Clojure object (functions,
   doesn't affect equality, i.e., two Clojure objects that differ only in their
   metadata are still equal.}.  For this TTC case, only the \code|:match|
 metadata entry is important.  As its name suggests, its value is the match of
-the rule on which the thunk applies the rule's actions.
+the rule's pattern on which the thunk applies the actions.
 
 In case of a forall-rule \code|r|, \code|(as-test (r model))| doesn't return a
-single thunk but a vector of thunks -- one thunk per match of the rule's
-pattern.  This is exactly what is needed for solving this transformation case.
+single thunk but a vector of thunks, one thunk per match of the rule's pattern.
+This is exactly what is needed for solving this transformation case.
 
 Finally, a function is defined that receives a rule \code|r| and a train model
 \code|g| and executes the rule as a test.
@@ -304,9 +303,9 @@ compile-time.
 These 28 lines of Clojure code form the complete functional part of the FunnyQT
 solution that solves all core and extension tasks.  The comparator used for
 sorting the matches in the benchmark framework is also implemented using
-Clojure/Funnyqt and discussed in section~\vref{sec:match-comparison}.
+Clojure/FunnyQT and discussed in section~\vref{sec:match-comparison}.
 Additionally, there is a plain-Java glue project which implements the
-interfaces required by the framework and simply delegates to the
+interfaces required by the benchmark framework and simply delegates to the
 Clojure/FunnyQT part of the solution.  This glue project is briefly discussed
 in section~\vref{sec:gluing}.
 
@@ -321,9 +320,9 @@ in which the elements of two matches have to be compared is defined separately
 for each task.
 
 Instead of providing one comparator per task, the FunnyQT solution provides one
-function \code|make-match-comparator| which receives the names of the match
-elements to be compared and then returns a suitable comparator.  The function's
-definition is given below.
+higher-order function \code|make-match-comparator| which receives the names of
+the match elements to be compared and then returns a suitable comparator.  The
+function's definition is given below.
 
 \begin{clojurecode}
 (defn make-match-comparator [& kws]
@@ -374,10 +373,11 @@ considering all given keywords, zero is returned.
 \subsection{Gluing the Solution with the Framework}
 \label{sec:gluing}
 
-Typically, open-source Clojure programs are distributed as JAR files that
-contain the source files rather than byte-compiled class files.  This solution
-does the same, and that JAR is deployed to a local Maven repository from which
-the Maven build infrastructure of the benchmark framework can pick it up.
+Typically, open-source Clojure libraries and programs are distributed as JAR
+files that contain the source files rather than byte-compiled class files.
+This solution does the same, and that JAR is deployed to a local Maven
+repository from which the Maven build infrastructure of the benchmark framework
+can pick it up.
 
 Then, in the FunnyQT glue project the rules and functions from above are
 referred to like shown in the next listing.
@@ -394,9 +394,9 @@ In line 2, the solution namespace \code|ttc15-train-benchmark-funnyqt.core| is
 required\footnote{\code|require| is kind of Clojure's equivalent to Java's
   \code|import| statement.}.  The \code|Clojure| class provides a minimal API
 for loading Clojure code from Java.  When requiring a namespace as above, it
-will be parsed and compiled to JVM byte-code\footnote{If the Clojure code was
-  distributed in a pre-compiled form, the resulting classes would simply be
-  loaded.}.
+will be parsed and compiled to JVM byte-code just in time\footnote{If the
+  Clojure code was distributed in a pre-compiled form, the resulting classes
+  would simply be loaded.}.
 
 Thereafter, the solution's in-place transformation rules and the
 \code|call-rule-as-test| function are referred to.  \code|IFn| is a Clojure
@@ -499,10 +499,11 @@ with respect to readability.
 \paragraph{Performance.}
 
 The figures~\Vref{fig:performance-fixed} and \vref{fig:performance-prop} show
-the runtimes of the FunnyQT, EMF-IncQuery, and Java solutions for all models
-and the fixed and proportional strategies when being run by the train benchmark
-framework.  The measurements have been performed on an 2.7 GHz 8-core machine
-with 16 GB of RAM being dedicated to the JVM process.
+the runtimes of the FunnyQT, EMF-IncQuery, and Java solutions for all models up
+to the size of 4096 (6,221,501 elements, 11,460,009 references) and the fixed
+and proportional strategies when being run by the train benchmark framework.
+The measurements have been performed on an 2.7 GHz 8-core machine with 16 GB of
+RAM being dedicated to the JVM process.
 
 \begin{figure}[h!tb]
   \centering
@@ -542,10 +543,10 @@ really pays off.
   \label{fig:performance-prop}
 \end{figure}
 
-In contrast, the FunnyQT solution takes 5-6 seconds per repair \& recheck
-iteration, and the Java solution takes about 3 seconds per iteration.  Both
-don't perform incremental matching but each \emph{check} requires a completely
-new re-computation of all matches.
+In contrast, the FunnyQT solution takes 5-6 seconds per \emph{repair \&
+  recheck} iteration, and the Java solution takes about 3 seconds per
+iteration.  Both don't perform incremental matching but each \emph{check}
+requires a completely new re-computation of all matches.
 
 It is a bit astonishing that the Java solution is faster than the FunnyQT
 solution.  The Java solution uses an ideal search algorithm for the queries.
@@ -556,7 +557,7 @@ parallelization also involves some overhead, and the code generated from the
 FunnyQT rules is not as optimal as hand-written code.
 
 One big difference between the FunnyQT and Java solutions is that the former
-re-checks matches before applying the repair actions as required by the case
+rechecks matches before applying the repair actions as required by the case
 description.  The Java solution doesn't do this costly action and thus can be
 be considered not completely correct.  That's another big benefit of an
 incremental approach like EMF-IncQuery: the matches can never be invalid so
@@ -564,7 +565,60 @@ there is no point in rechecking.
 
 One other thing to note is that the FunnyQT solution runs quite a bit faster
 when being run in its own project instead of being invoked by the benchmark
-framework.
+framework.  In the former case, its performance (with rechecking of matches) is
+on par with the performance of the Java solution (without rechecking of
+matches).  I suspect that the performance loss in the benchmark framework is
+due to the fact that the benchmark framework executes each test in a separate,
+newly spawned JVM instance without any warmup phase.  In addition, the FunnyQT
+solution is loaded and compiled dynamically from its sources.  Both reasons
+might result in less optimizations being performed by the JVM HotSpot compiler,
+and even if they are performed, they contribute to the overall measured
+runtime.
+
+In summary, the ranking between the three solutions when adding up the measured
+runtimes for both the \emph{load \& check} phase and ten iterations of the
+\emph{repair \& recheck} phase is Java first, then FunnyQT, and then
+EMF-IncQuery.  However, if one increases the iteration count for the
+\emph{repair \& recheck} phase, the EMF-IncQuery solution will outperform the
+other two solutions pretty easily simply because this scenario matches exactly
+what an incremental pattern matching approach is meant for.
+
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper described the FunnyQT solution to the TTC 2015 Train Benchmark case.
+It solves all three core tasks and all two extension tasks, and the benchmark
+framework provides evidence that it delivers correct results.
+
+The solution is extremely concise.  Its five rules and one function amount to a
+total of only 28 lines of code (excluding comments and empty lines).
+
+With respect to readability, FunnyQT's pattern matching/in-place transformation
+rule DSL should be quite familiar to both people with a graph transformation
+background and people with a Clojure background.  A strong point is that the
+patterns matching invalid subgraphs and the corresponding repair actions are
+defined in one place as transformation rules.  Nevertheless, the matching part
+and the application of the repair actions on (only parts of) the matches is
+well-supported using FunnyQT's rule application modifier macro \code|as-test|.
+
+The FunnyQT solution also performs very well for large models although the
+incremental pattern matching approach inherent to the EMF-IncQuery solution can
+easily outperform the FunnyQT solution when increasing the iteration count of
+the \emph{repair \& recheck} phase from 10 iterations to 20 or more.  Like with
+all traditional, search-based pattern matching approaches, FunnyQT's prime
+scenario isn't the incremental one.  If one would measure the time needed for
+finding all invalid subgraphs and repairing them all at once, then FunnyQT is a
+very competitive approach due to its feature of performing parallel pattern
+matching automatically for forall-rules on multi-core machines.  In scenarios
+where rules should find just one match and perform actions on that, FunnyQT's
+normal rules that perform lazy pattern matching also achieve a high
+performance.
+
+Another aspect speaking in favor of FunnyQT is its comprehensiveness.  It
+provides APIs and and embedded DSLs for almost any querying and transformation
+task conceivable.  Since the FunnyQT project has been started in 2012, there
+hasn't been a single TTC case for which no FunnyQT solution has been provided.
 
 
 
