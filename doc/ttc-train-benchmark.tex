@@ -500,7 +500,9 @@ with respect to readability.
 
 The figures~\Vref{fig:performance-fixed} and \vref{fig:performance-prop} show
 the runtimes of the FunnyQT, EMF-IncQuery, and Java solutions for all models
-and the fixed and proportional strategies.
+and the fixed and proportional strategies when being run by the train benchmark
+framework.  The measurements have been performed on an 2.7 GHz 8-core machine
+with 16 GB of RAM being dedicated to the JVM process.
 
 \begin{figure}[h!tb]
   \centering
@@ -517,6 +519,14 @@ and the fixed and proportional strategies.
   \label{fig:performance-fixed}
 \end{figure}
 
+The FunnyQT and Java solutions have very similar performance characteristics.
+With the larger models, the \emph{load \& check} phase is dominated by the load
+time for the EMF models.  The EMF-IncQuery is almost three times slower in this
+phase because the initialization of its incremental pattern matching engine
+needs quite some time.  However, performing the \emph{repair \& recheck} ten
+times takes at most one and a half second, so here the incremental approach
+really pays off.
+
 \begin{figure}[h!tb]
   \centering
   \includegraphics[width=.495\textwidth]{perf/proportional-FunnyQT-GroupBy-Query-time-batch-validation}
@@ -531,6 +541,31 @@ and the fixed and proportional strategies.
   \caption{Results of the performance measurements (\emph{proportional} strategy)}
   \label{fig:performance-prop}
 \end{figure}
+
+In contrast, the FunnyQT solution takes 5-6 seconds per repair \& recheck
+iteration, and the Java solution takes about 3 seconds per iteration.  Both
+don't perform incremental matching but each \emph{check} requires a completely
+new re-computation of all matches.
+
+It is a bit astonishing that the Java solution is faster than the FunnyQT
+solution.  The Java solution uses an ideal search algorithm for the queries.
+The functions the FunnyQT rules expand to use a very similar algorithm, and at
+least for the patterns matching more than two elements, the search is performed
+in parallel exploiting all of the test system's cores.  Of course,
+parallelization also involves some overhead, and the code generated from the
+FunnyQT rules is not as optimal as hand-written code.
+
+One big difference between the FunnyQT and Java solutions is that the former
+re-checks matches before applying the repair actions as required by the case
+description.  The Java solution doesn't do this costly action and thus can be
+be considered not completely correct.  That's another big benefit of an
+incremental approach like EMF-IncQuery: the matches can never be invalid so
+there is no point in rechecking.
+
+One other thing to note is that the FunnyQT solution runs quite a bit faster
+when being run in its own project instead of being invoked by the benchmark
+framework.
+
 
 
 \bibliographystyle{eptcs}
