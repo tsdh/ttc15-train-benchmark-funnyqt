@@ -2,10 +2,12 @@
 \providecommand{\event}{TTC 2015}
 
 \usepackage[T1]{fontenc}
-\usepackage{url}
 \usepackage{varioref}
 \usepackage{hyperref}
+
+\usepackage{url}
 \usepackage{paralist}
+\usepackage{graphicx}
 \usepackage[cache]{minted}
 \newminted{clojure}{fontsize=\fontsize{8}{8},linenos,numbersep=3pt,numberblanklines=false}
 \newmintinline{clojure}{fontsize=\footnotesize}
@@ -302,10 +304,11 @@ compile-time.
 These 28 lines of Clojure code form the complete functional part of the FunnyQT
 solution that solves all core and extension tasks.  The comparator used for
 sorting the matches in the benchmark framework is also implemented using
-Clojure/Funnyqt and discussed in \vref{sec:match-comparison}.  Additionally,
-there is a plain-Java glue project which implements the interfaces required by
-the framework and simply delegates to the Clojure/FunnyQT part of the solution.
-This glue project is briefly discussed in \vref{sec:gluing}.
+Clojure/Funnyqt and discussed in section~\vref{sec:match-comparison}.
+Additionally, there is a plain-Java glue project which implements the
+interfaces required by the framework and simply delegates to the
+Clojure/FunnyQT part of the solution.  This glue project is briefly discussed
+in section~\vref{sec:gluing}.
 
 
 \subsection{Match Comparison}
@@ -381,15 +384,27 @@ referred to like shown in the next listing.
 
 \begin{minted}[fontsize=\fontsize{8}{8},linenos,numbersep=3pt,numberblanklines=false]{java}
 private final static String SOLUTION_NS = "ttc15-train-benchmark-funnyqt.core";
+Clojure.var("clojure.core", "require").invoke(Clojure.read(SOLUTION_NS));
 final static IFn POS_LENGTH = Clojure.var(SOLUTION_NS, "pos-length");
+...
 final static IFn CALL_RULE_AS_TEST = Clojure.var(SOLUTION_NS, "call-rule-as-test");
 \end{minted}
 
-\code|IFn| is a Clojure interface whose instances are Clojure functions that
-can be called using the \code|invoke()| method as can be seen in the definition
-of the glue project's \code|BenchmarkCase.check()| method shown below.
+In line 2, the solution namespace \code|ttc15-train-benchmark-funnyqt.core| is
+required\footnote{\code|require| is kind of Clojure's equivalent to Java's
+  \code|import| statement.}.  The \code|Clojure| class provides a minimal API
+for loading Clojure code from Java.  When requiring a namespace as above, it
+will be parsed and compiled to JVM byte-code\footnote{If the Clojure code was
+  distributed in a pre-compiled form, the resulting classes would simply be
+  loaded.}.
 
-\begin{minted}{java}
+Thereafter, the solution's in-place transformation rules and the
+\code|call-rule-as-test| function are referred to.  \code|IFn| is a Clojure
+interface whose instances are Clojure functions that can be called using the
+\code|invoke()| method as can be seen in the definition of the glue project's
+\code|BenchmarkCase.check()| method shown below.
+
+\begin{minted}[fontsize=\fontsize{8}{8},linenos,numbersep=3pt,numberblanklines=false]{java}
 @Override
 protected final Collection<Object> check() throws IOException {
     matches = (Collection<Object>) FunnyQTBenchmarkLogic.CALL_RULE_AS_TEST
@@ -404,11 +419,13 @@ protected final Collection<Object> check() throws IOException {
 \end{minted}
 
 In that code, \code|rule| is one of the rule \code|IFn|s \code|POS_LENGTH|,
-\code|SWITCH_SET|, etc.
+\code|SWITCH_SET|, et cetera, and they are called via the
+\code|call-rule-as-test| function to make them return one thunk per match
+instead of performing the rules' repair actions immediately.
 
 The implementation of the \code|BenchmarkCase.modify()| method is even simpler.
 
-\begin{minted}{java}
+\begin{minted}[fontsize=\fontsize{8}{8},linenos,numbersep=3pt,numberblanklines=false]{java}
 @Override
 protected final void modify(Collection<Object> matches) {
     for (Object m : matches) {
@@ -422,8 +439,99 @@ rule's actions, those simply need to be invoked, and that's it.
 
 
 
-\section{Evaluation and Conclusion}
+\section{Evaluation}
 \label{sec:evaluation}
+
+\paragraph{Correctness and Completeness.}
+
+The FunnyQT solution implements all core and all extension tasks exactly as
+demanded by the case description, thus it is complete.  When run in the
+benchmark framework, all assertion it checks are satisfied, thus the solution
+is also correct.
+
+According to the case description, this gives a \emph{correctness and
+  completeness score} of 15 points.
+
+\paragraph{Conciseness.}
+
+The FunnyQT solution consists of 28 NCLOC of FunnyQT/Clojure code for the five
+rules with their patterns and repair actions, and the function
+\code|call-rule-as-test|.
+
+In comparison, the reference EMF-IncQuery solution has about 70 NCLOC only for
+the patterns plus 69 NCLOC of plain Java code for the repair actions.
+Honestly, more than half of the lines of the Java repair actions are
+boilerplate code.  So by a fair measure one could say that the EMF-IncQuery
+solution consists of a little bit less than 100 lines of code which actually
+implement the solution and are no boilerplate.
+
+The reference Java solution consists of 305 NCLOC for the queries and repair
+actions (excluding the classes for the custom match representations).  On the
+one hand, one could subtract maybe 10\% for boilerplate code but on the other
+hand, when encoding queries and transformations in Java, boilerplate code is a
+fact you have to live with.
+
+To sum up, the FunnyQT solution is about three times shorter than the
+EMF-IncQuery solution and about ten times shorter than the Java solution.
+Thus, if there is no even more concise solution, it deserves a
+\emph{conciseness score} of 15 points.
+
+\paragraph{Readability.}
+
+Readability is a very subjective matter, of course, so I won't suggest a
+\emph{readability score} value here.  However, there are some strong points
+with respect to readability.
+
+\begin{compactitem}
+\item The queries (patterns) and repair actions are bundled in one concise
+  in-place transformation rule each.  In contrast, in the EMF-IncQuery as well
+  as the Java solution the queries and repair transformations are strictly
+  separated.  But the latter still depend on the former in that they can only
+  work with the matches produced by the former.
+\item FunnyQT's pattern matching DSL used to specify the rules' patterns is
+  both concise and readable.  It should be easy to understand for graph
+  transformation experts, especially if they have used other textual graph
+  transformation languages such as \emph{GrGen.NET} before.  It should also be
+  easy to understand for any Clojure programmer because it strictly conforms to
+  the style guidelines and best practices there, too.
+\end{compactitem}
+
+\paragraph{Performance.}
+
+The figures~\Vref{fig:performance-fixed} and \vref{fig:performance-prop} show
+the runtimes of the FunnyQT, EMF-IncQuery, and Java solutions for all models
+and the fixed and proportional strategies.
+
+\begin{figure}[h!tb]
+  \centering
+  \includegraphics[width=.495\textwidth]{perf/fixed-FunnyQT-GroupBy-Query-time-batch-validation}
+  \includegraphics[width=.495\textwidth]{perf/fixed-FunnyQT-GroupBy-Query-time-revalidation}
+
+  \includegraphics[width=.495\textwidth]{perf/fixed-EMFIncQuery-GroupBy-Query-time-batch-validation}
+  \includegraphics[width=.495\textwidth]{perf/fixed-EMFIncQuery-GroupBy-Query-time-revalidation}
+
+  \includegraphics[width=.495\textwidth]{perf/fixed-Java-GroupBy-Query-time-batch-validation}
+  \includegraphics[width=.495\textwidth]{perf/fixed-Java-GroupBy-Query-time-revalidation}
+
+  \caption{Results of the performance measurements (\emph{fixed} strategy)}
+  \label{fig:performance-fixed}
+\end{figure}
+
+\begin{figure}[h!tb]
+  \centering
+  \includegraphics[width=.495\textwidth]{perf/proportional-FunnyQT-GroupBy-Query-time-batch-validation}
+  \includegraphics[width=.495\textwidth]{perf/proportional-FunnyQT-GroupBy-Query-time-revalidation}
+
+  \includegraphics[width=.495\textwidth]{perf/proportional-EMFIncQuery-GroupBy-Query-time-batch-validation}
+  \includegraphics[width=.495\textwidth]{perf/proportional-EMFIncQuery-GroupBy-Query-time-revalidation}
+
+  \includegraphics[width=.495\textwidth]{perf/proportional-Java-GroupBy-Query-time-batch-validation}
+  \includegraphics[width=.495\textwidth]{perf/proportional-Java-GroupBy-Query-time-revalidation}
+
+  \caption{Results of the performance measurements (\emph{proportional} strategy)}
+  \label{fig:performance-prop}
+\end{figure}
+
 
 \bibliographystyle{eptcs}
 \bibliography{ttc-train-benchmark}
