@@ -24,6 +24,12 @@ Depending on the model sizes you want to transform, you can adjust the `-Xmx`
 JVM argument in `project.clj`.  The preset value should be enough for all
 models up to the size of the `railway-4096.railway` model.
 
+The models to which the rules should be applied, the number of runs, and the
+rules to be considered can be adjusted at the top of
+`test/ttc15_train_benchmark_funnyqt/core_test.clj`.  The default is to consider
+all models of sizes 1 to 1024 (inclusive), do just one run, and consider all
+rules.
+
 ### Running in the train benchmark framework
 
 Deploy this project to your local maven repository using `lein install`.  Then
