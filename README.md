@@ -17,14 +17,21 @@ the Leiningen homepage and put it in your `PATH`.
 
 Just run `lein test`.  That will execute the fixed and proportional strategies
 on all railway models in `test/models/`.  Additionally, it'll run another
-strategy which find all broken elements and fixes all of them at once.
+strategy which finds all broken elements and fixes all of them at once, i.e.,
+this is a non-incremental strategy.
+
+Depending on the model sizes you want to transform, you can adjust the `-Xmx`
+JVM argument in `project.clj`.  The preset value should be enough for all
+models up to the size of the `railway-4096.railway` model.
 
 ### Running in the train benchmark framework
 
 Deploy this project to your local maven repository using `lein install`.  Then
 follow the instruction of
 [my fork of the train benchmark framework](https://github.com/tsdh/trainbenchmark-ttc)
-which contains a glue project running the FunnyQT solution.
+which contains a glue project running the FunnyQT solution.  This glue project
+contains some Java classes implementing the framework's interfaces.  These
+classes simply call the FunnyQT/Clojure solution.
 
 ## License
 
