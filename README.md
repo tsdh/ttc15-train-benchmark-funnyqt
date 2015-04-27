@@ -41,7 +41,7 @@ classes simply call the FunnyQT/Clojure solution.
 
 ## License
 
-Copyright © 2015 Tassilo Horn <horn@uni-koblenz.de
+Copyright © 2015 Tassilo Horn <horn@uni-koblenz.de>
 
 Distributed under the
 [GNU General Public License, version 3](https://www.gnu.org/copyleft/gpl.html),
