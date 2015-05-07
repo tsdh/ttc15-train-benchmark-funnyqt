@@ -13,18 +13,18 @@
 
 ;;* Rules
 
-(defrule ^:forall ^:recheck pos-length [g]
+(defrule pos-length {:forall true :recheck true} [g]
   [segment<Segment>
    :when (<= (eget-raw segment :length) 0)]
   (eset! segment :length (inc (- (eget-raw segment :length)))))
 
-(defrule ^:forall ^:recheck switch-sensor [g]
+(defrule switch-sensor {:forall true :recheck true } [g]
   [sw<Switch> -!<:sensor>-> <>]
   (eset! sw :sensor (ecreate! nil 'Sensor)))
 
 (def Signal-GO (eenum-literal 'Signal.GO))
 
-(defrule ^:forall ^:recheck switch-set [g]
+(defrule switch-set {:forall true :recheck true} [g]
   [route<Route> -<:entry>-> semaphore
    :when (= (eget-raw semaphore :signal) Signal-GO)
    route -<:follows>-> swp -<:switch>-> sw
@@ -32,12 +32,12 @@
    :when (not= (eget-raw sw :currentPosition) swp-pos)]
   (eset! sw :currentPosition swp-pos))
 
-(defrule ^:forall ^:recheck route-sensor [g]
+(defrule route-sensor {:forall true :recheck true} [g]
   [route<Route> -<:follows>-> swp -<:switch>-> sw
    -<:sensor>-> sensor --!<> route]
   (eadd! route :definedBy sensor))
 
-(defrule ^:forall ^:recheck semaphore-neighbor [g]
+(defrule semaphore-neighbor {:forall [64 16] :recheck true} [g]
   [route1<Route> -<:exit>-> semaphore
    route1 -<:definedBy>-> sensor1 -<:elements>-> te1
    -<:connectsTo>-> te2 -<:sensor>-> sensor2
