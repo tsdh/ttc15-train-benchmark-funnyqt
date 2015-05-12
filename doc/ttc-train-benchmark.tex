@@ -505,12 +505,12 @@ with respect to readability.
 
 \paragraph{Performance.}
 
-The figures~\Vref{fig:performance-fixed} and \vref{fig:performance-prop} show
-the runtimes of the FunnyQT solutions for all models up to the size of 8192
+Figure~\Vref{fig:performance-fixed} and Figure~\vref{fig:performance-prop} show
+the runtimes of the FunnyQT solution for all models up to the size of 8192
 (12,512,663 elements, 23,048,272 references) and the fixed and proportional
-strategies when being run by the train benchmark framework.  The measurements
-have been performed on an 2.7 GHz 8-core machine with 16 GB of RAM being
-dedicated to the JVM process.
+strategies as measured by the train benchmark framework.  The tests have been
+performed on an 2.7 GHz 8-core machine with 16 GB of RAM being dedicated to the
+JVM process.
 
 \begin{figure}[h!tb]
   \centering
@@ -529,6 +529,46 @@ dedicated to the JVM process.
   \caption{Results of the performance measurements (\emph{proportional} strategy)}
   \label{fig:performance-prop}
 \end{figure}
+
+For the most complex rule \code|semaphore-neighbor| and the largest model with
+over twelve million elements, the initial \emph{read \& check} phase takes
+slightly less than 140 seconds for both the fixed and the proportional
+strategies.  Almost all of this time is spend for loading the model.
+
+The 10 iterations of the \emph{repair \& recheck} phase take about 100 seconds
+for both the fixed and proportional strategies, i.e., every iteration is
+performed in about 10 seconds.
+
+The benchmarks have also be run for the reference Java and the EMF-IncQuery
+solution on the same test machine.  For the Java solution, the initial
+\emph{read \& check} phase is slightly faster than the FunnyQT solution but the
+10 iterations of the \emph{repair \& recheck} phase only take 64 seconds which
+is astonishing.  Of course, a general pattern matching approach like that of
+FunnyQT has some overhead when compared to a hand-crafted algorithm.  But the
+iteration order implied by the FunnyQT pattern equals that of the Java
+solution, and the FunnyQT solution performs the search in parallel on all 8 CPU
+cores.  The only obvious differences between the FunnyQT solution and the Java
+solution is that the former rechecks matched elements before applying the
+repair actions whereas the latter doesn't.  However, the rechecking only
+accounts for a tiny fraction of the overall execution time and thus doesn't
+explain the execution time difference.
+
+When compared with the EMF-IncQuery solution one can say that the FunnyQT
+solution performs better in the scenarios defined by the case description.
+With 16 GB of memory dedicated to the JVM process, the EMF-IncQuery
+\emph{SemaphoreNeighbor} query fails for the model of size of 8192.  When
+comparing the overall execution time for the model of size 4096, i.e., the sum
+of the \emph{read \& check} and the 10 iterations of the \emph{repair \&
+  recheck} phase, the FunnyQT solution is also a bit faster than the
+EMF-IncQuery solution.  However, with the incremental pattern matching approach
+of EMF-IncQuery, the \emph{repair \& recheck} phase is extremely fast.  Thus,
+when increasing the iteration count from 10 to some higher value, the
+EMF-IncQuery solution will eventually outperform the FunnyQT solution pretty
+easily.
+
+One thing to note is that the FunnyQT solution is about 20-30\% faster when it
+is run in its stand-alone project instead of being invoked by the train
+benchmark framework.  The reason for this fact is unknown.
 
 
 
@@ -565,9 +605,10 @@ where rules should find just one match and perform actions on that, FunnyQT's
 normal rules that perform lazy pattern matching also achieve a very high
 performance.
 
-Another aspect speaking in favor of FunnyQT is its comprehensiveness.  It
-provides APIs and and embedded DSLs for almost any querying and transformation
-task conceivable.
+Another aspect speaking in favor of FunnyQT is its comprehensiveness.  Next to
+the pattern matching and in-place transformation constructs used for solving
+this TTC case, it provides APIs and embedded DSLs suitable for solving almost
+any conceivable querying and transformation tasks.
 
 
 \bibliographystyle{eptcs}
