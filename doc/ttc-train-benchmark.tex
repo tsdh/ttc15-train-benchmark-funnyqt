@@ -269,8 +269,8 @@ but instead of applying the rule's actions immediately, it returns a closure of
 arity zero (a so-called \emph{thunk}) which captures the rule's match and the
 rule's actions.  Invoking the thunk causes the actions to be applied on the
 match.  Thus, the caller of the rule gets the information if the rule was
-applicable at all, and if it was applicable, he can decide if he wants to apply
-it or not.  And when he applies it, the pattern matching part is already
+applicable at all, and if it was applicable, she can decide if she wants to
+apply it or not.  And when she applies it, the pattern matching part is already
 finished and only the actions are applied on the pre-calculated match the thunk
 closes over.  The following snippet illustrates the behavior.
 
@@ -278,7 +278,7 @@ closes over.  The following snippet illustrates the behavior.
 (if-let [thunk (as-test (r model))]
   (if (< (Math/random) 0.5)
     (thunk) ;; The rule was applicable, and here its actions are executed
-    (println "The coin toss decided to skip the application of the rule's matches"))
+    (println "The coin toss decided to skip the application of the rule's actions"))
   (println "The rule is not applicable"))
 \end{clojurecode*}
 
@@ -506,89 +506,30 @@ with respect to readability.
 \paragraph{Performance.}
 
 The figures~\Vref{fig:performance-fixed} and \vref{fig:performance-prop} show
-the runtimes of the FunnyQT, EMF-IncQuery, and Java solutions for all models up
-to the size of 4096 (6,221,501 elements, 11,460,009 references) and the fixed
-and proportional strategies when being run by the train benchmark framework.
-The measurements have been performed on an 2.7 GHz 8-core machine with 16 GB of
-RAM being dedicated to the JVM process.
+the runtimes of the FunnyQT solutions for all models up to the size of 8192
+(12,512,663 elements, 23,048,272 references) and the fixed and proportional
+strategies when being run by the train benchmark framework.  The measurements
+have been performed on an 2.7 GHz 8-core machine with 16 GB of RAM being
+dedicated to the JVM process.
 
 \begin{figure}[h!tb]
   \centering
-  \includegraphics[width=.495\textwidth]{perf/fixed-FunnyQT-GroupBy-Query-time-batch-validation}
-  \includegraphics[width=.495\textwidth]{perf/fixed-FunnyQT-GroupBy-Query-time-revalidation}
+  \includegraphics[width=\textwidth]{perf/fixed-FunnyQT-GroupBy-Query-time-batch-validation}
 
-  \includegraphics[width=.495\textwidth]{perf/fixed-EMFIncQuery-GroupBy-Query-time-batch-validation}
-  \includegraphics[width=.495\textwidth]{perf/fixed-EMFIncQuery-GroupBy-Query-time-revalidation}
-
-  \includegraphics[width=.495\textwidth]{perf/fixed-Java-GroupBy-Query-time-batch-validation}
-  \includegraphics[width=.495\textwidth]{perf/fixed-Java-GroupBy-Query-time-revalidation}
-
+  \includegraphics[width=\textwidth]{perf/fixed-FunnyQT-GroupBy-Query-time-revalidation}
   \caption{Results of the performance measurements (\emph{fixed} strategy)}
   \label{fig:performance-fixed}
 \end{figure}
 
-The FunnyQT and Java solutions have very similar performance characteristics.
-With the larger models, the \emph{load \& check} phase is dominated by the load
-time for the EMF models.  The EMF-IncQuery is almost three times slower in this
-phase because the initialization of its incremental pattern matching engine
-needs quite some time.  However, performing the \emph{repair \& recheck} ten
-times takes at most one and a half second, so here the incremental approach
-really pays off.
-
 \begin{figure}[h!tb]
   \centering
-  \includegraphics[width=.495\textwidth]{perf/proportional-FunnyQT-GroupBy-Query-time-batch-validation}
-  \includegraphics[width=.495\textwidth]{perf/proportional-FunnyQT-GroupBy-Query-time-revalidation}
+  \includegraphics[width=\textwidth]{perf/proportional-FunnyQT-GroupBy-Query-time-batch-validation}
 
-  \includegraphics[width=.495\textwidth]{perf/proportional-EMFIncQuery-GroupBy-Query-time-batch-validation}
-  \includegraphics[width=.495\textwidth]{perf/proportional-EMFIncQuery-GroupBy-Query-time-revalidation}
-
-  \includegraphics[width=.495\textwidth]{perf/proportional-Java-GroupBy-Query-time-batch-validation}
-  \includegraphics[width=.495\textwidth]{perf/proportional-Java-GroupBy-Query-time-revalidation}
-
+  \includegraphics[width=\textwidth]{perf/proportional-FunnyQT-GroupBy-Query-time-revalidation}
   \caption{Results of the performance measurements (\emph{proportional} strategy)}
   \label{fig:performance-prop}
 \end{figure}
 
-In contrast, the FunnyQT solution takes 5-6 seconds per \emph{repair \&
-  recheck} iteration, and the Java solution takes about 3 seconds per
-iteration.  Both don't perform incremental matching but each \emph{check}
-requires a completely new re-computation of all matches.
-
-It is a bit astonishing that the Java solution is faster than the FunnyQT
-solution.  The Java solution uses an ideal search algorithm for the queries.
-The functions the FunnyQT rules expand to use a very similar algorithm, and at
-least for the patterns matching more than two elements, the search is performed
-in parallel exploiting all of the test system's cores.  Of course,
-parallelization also involves some overhead, and the code generated from the
-FunnyQT rules is not as optimal as hand-written code.
-
-One big difference between the FunnyQT and Java solutions is that the former
-rechecks matches before applying the repair actions as required by the case
-description.  The Java solution doesn't do this costly action and thus can be
-be considered not completely correct.  That's another big benefit of an
-incremental approach like EMF-IncQuery: the matches can never be invalid so
-there is no point in rechecking.
-
-One other thing to note is that the FunnyQT solution runs quite a bit faster
-when being run in its own project instead of being invoked by the benchmark
-framework.  In the former case, its performance (with rechecking of matches) is
-on par with the performance of the Java solution (without rechecking of
-matches).  I suspect that the performance loss in the benchmark framework is
-due to the fact that the benchmark framework executes each test in a separate,
-newly spawned JVM instance without any warmup phase.  In addition, the FunnyQT
-solution is loaded and compiled dynamically from its sources.  Both reasons
-might result in less optimizations being performed by the JVM HotSpot compiler,
-and even if they are performed, they contribute to the overall measured
-runtime.
-
-In summary, the ranking between the three solutions when adding up the measured
-runtimes for both the \emph{load \& check} phase and ten iterations of the
-\emph{repair \& recheck} phase is Java first, then FunnyQT, and then
-EMF-IncQuery.  However, if one increases the iteration count for the
-\emph{repair \& recheck} phase, the EMF-IncQuery solution will outperform the
-other two solutions pretty easily simply because this scenario matches exactly
-what an incremental pattern matching approach is meant for.
 
 
 \section{Conclusion}
@@ -599,7 +540,9 @@ It solves all three core tasks and all two extension tasks, and the benchmark
 framework provides evidence that it delivers correct results.
 
 The solution is extremely concise.  Its five rules and one function amount to a
-total of only 28 lines of code (excluding comments and empty lines).
+total of only 28 lines of code (excluding comments, empty lines, and namespace
+declarations\footnote{Namspace declarations are Clojure's equivalent to Java's
+  \mintinline{java}|package| and \mintinline{java}|import| statements.}).
 
 With respect to readability, FunnyQT's pattern matching/in-place transformation
 rule DSL should be quite familiar to both people with a graph transformation
@@ -619,14 +562,12 @@ finding all invalid subgraphs and repairing them all at once, then FunnyQT is a
 very competitive approach due to its feature of performing parallel pattern
 matching automatically for forall-rules on multi-core machines.  In scenarios
 where rules should find just one match and perform actions on that, FunnyQT's
-normal rules that perform lazy pattern matching also achieve a high
+normal rules that perform lazy pattern matching also achieve a very high
 performance.
 
 Another aspect speaking in favor of FunnyQT is its comprehensiveness.  It
 provides APIs and and embedded DSLs for almost any querying and transformation
-task conceivable.  Since the FunnyQT project has been started in 2012, there
-hasn't been a single TTC case for which no FunnyQT solution has been provided.
-
+task conceivable.
 
 
 \bibliographystyle{eptcs}
