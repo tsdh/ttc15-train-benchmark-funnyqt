@@ -106,45 +106,52 @@ call the CRUD functions of the EMF-specific \emph{funnyqt.emf} namespace.
 The transformation rule realizing the \emph{PosLength} task is given below.
 
 \begin{clojurecode}
-(defrule ^:forall ^:recheck pos-length [g]
+(defrule pos-length {:forall true :recheck true} [g]
   [segment<Segment>
    :when (<= (eget-raw segment :length) 0)]
   (eset! segment :length (inc (- (eget-raw segment :length)))))
 \end{clojurecode}
 
 The \code|defrule| macro defines a new in-place transformation rule with the
-given name (\code|pos-length|), formal parameters (\code|[g]|), a pattern
-(\code|[segment<Segment>...]|), and one or many actions to be applied to the
-pattern's matches (\code|(eset! ...)|).  The first formal parameter must denote
-the model the rule is applied to, so here the argument \code|g| denotes the
-train model when the rule is applied using \code|(pos-length my-train-model)|.
+given name (\code|pos-length|), an optional map of options
+(\code|{:forall true, ...}|) a vector of formal parameters (\code|[g]|), a
+pattern (\code|[segment<Segment>...]|), and one or many actions to be applied
+to the pattern's matches (\code|(eset! ...)|).  The first formal parameter must
+denote the model the rule is applied to, so here the argument \code|g| denotes
+the train model when the rule is applied using
+\code|(pos-length my-train-model)|.
 
 The pattern matches a node called \code|segment| of metamodel class
 \code|Segment|.  Additionally, the segment's length must be less or equal to
-zero.  The action says that the segment's \code|length| attribute should be set
-to the incremented negation of the current length.
+zero as defined by the \code|:when| constraint.  The action says that the
+segment's \code|length| attribute should be set to the incremented negation of
+the current length.
 
 The normal semantics of applying a rule is to find one single match of the
 rule's pattern and then execute the rule's actions on the matched elements.
-The modifier \code|^:forall| changes this behavior to finding all matches
-first, and then applying the actions to each match one after the other.
-FunnyQT automatically parallelizes the pattern matching process of such
-forall-rules under certain circumstances like the JVM having more than one CPU
-available and the pattern declaring at least two elements to be matched.
+The \code|:forall| option changes this behavior to finding all matches first,
+and then applying the actions to each match one after the other.  FunnyQT
+automatically parallelizes the pattern matching process of such forall-rules
+under certain circumstances like the JVM having more than one CPU available and
+the pattern declaring at least two elements to be matched.
 
-The \code|^:recheck| modifier causes the rule to recheck if a pre-calculated
-match is still conforming the pattern just before executing the rule's actions
-on it.  This can be needed for forall-rules whose actions possibly invalidate
-matches of the same rule's pattern, e.g., when the application of the action to
-a match \(m_i\) cause another match \(m_j\) to be no valid match any longer.
+The \code|:recheck| option causes the rule to recheck if a pre-calculated match
+is still conforming the pattern just before executing the rule's actions on it.
+This can be needed for forall-rules whose actions possibly invalidate matches
+of the same rule's pattern, e.g., when the application of the action to a match
+\(m_i\)
+cause another match \(m_j\)
+to be no valid match any longer\footnote{This cannot happen for the
+  \code|pos-length| rule, however the case description demands matches to be
+  revalidated before applying the repair actions.}.
 
 
 \paragraph{Task 2: SwitchSensor.}
 
 The transformation rule realizing the \emph{SwitchSensor} task is given below.
 
-\begin{clojurecode*}{firstnumber=5}
-(defrule ^:forall ^:recheck switch-sensor [g]
+\begin{clojurecode*}{firstnumber=last}
+(defrule switch-sensor {:forall true :recheck true} [g]
   [sw<Switch> -!<:sensor>-> <>]
   (eset! sw :sensor (ecreate! nil 'Sensor)))
 \end{clojurecode*}
@@ -161,10 +168,10 @@ the switch \code|sw|.
 The \code|switch-set| rule realizes the \emph{SwitchSet} task.  Its definition
 is given below.
 
-\begin{clojurecode*}{firstnumber=8}
+\begin{clojurecode*}{firstnumber=last}
 (def Signal-GO (eenum-literal 'Signal.GO))
 
-(defrule ^:forall ^:recheck switch-set [g]
+(defrule switch-set {:forall true :recheck true} [g]
   [route<Route> -<:entry>-> semaphore
    :when (= (eget-raw semaphore :signal) Signal-GO)
    route -<:follows>-> swp -<:switch>-> sw
@@ -175,19 +182,18 @@ is given below.
 
 It matches a \code|route| with its entry \code|semaphore| where the semaphore's
 signal is \code|Signal.GO|.  The route follows some switch position \code|swp|
-whose switch's current position is different from that of the switch position.
-The fix is to set the switch's current position to the position of the switch
-position \code|swp|.
+whose switch \code|sw|'s current position is different from that of the switch
+position.  The fix is to set the switch's current position to the position of
+the switch position \code|swp|.
 
 Note that there are no metamodel types specified for the elements
 \code|semaphore|, \code|swp|, and \code|sw| because those are already defined
 implicitly by the references leading to them, e.g., all elements referenced by
 a route's \code|follows| reference can only be instances of
-\code|SwitchPosition| according to the metamodel.  Thus, FunnyQT doesn't
-require the transformation writer to encode tautologies in her
-patterns\footnote{In fact, if there are types specified, those will be checked.
-  So omitting them when they are not needed also results in slightly faster
-  patterns.}.
+\code|SwitchPosition| according to the metamodel.  FunnyQT doesn't require the
+transformation writer to encode tautologies in her patterns\footnote{In fact,
+  if there are types specified, those will be checked.  So omitting them when
+  they are not needed also results in slightly faster patterns.}.
 
 
 \paragraph{Extension Task 1: RouteSensor.}
@@ -195,8 +201,8 @@ patterns\footnote{In fact, if there are types specified, those will be checked.
 The extension task \emph{RouteSensor} is realized by the \code|route-sensor|
 rule given below.
 
-\begin{clojurecode*}{firstnumber=16}
-(defrule ^:forall ^:recheck route-sensor [g]
+\begin{clojurecode*}{firstnumber=last}
+(defrule route-sensor {:forall true :recheck true} [g]
   [route<Route> -<:follows>-> swp -<:switch>-> sw
    -<:sensor>-> sensor --!<> route]
   (eadd! route :definedBy sensor))
@@ -212,8 +218,8 @@ repair action is to assign the \code|sensor| to the \code|route|.
 The second and last extension task \emph{SemaphoreNeighbor} is realized by the
 \code|semaphore-neighbor| rule defined as shown below.
 
-\begin{clojurecode*}{firstnumber=20}
-(defrule ^:forall ^:recheck semaphore-neighbor [g]
+\begin{clojurecode*}{firstnumber=last}
+(defrule semaphore-neighbor {:forall true :recheck true} [g]
   [route1<Route> -<:exit>-> semaphore
    route1 -<:definedBy>-> sensor1 -<:elements>-> te1
    -<:connectsTo>-> te2 -<:sensor>-> sensor2
@@ -631,6 +637,7 @@ hasn't been a single TTC case for which no FunnyQT solution has been provided.
 %%% mode: latex
 %%% TeX-master: t
 %%% TeX-command-extra-options: "-shell-escape"
+%%% LaTeX-verbatim-macros-with-delims-local: ("code")
 %%% End:
 
 %  LocalWords:  parallelizes

@@ -18,7 +18,7 @@
    :when (<= (eget-raw segment :length) 0)]
   (eset! segment :length (inc (- (eget-raw segment :length)))))
 
-(defrule switch-sensor {:forall true :recheck true } [g]
+(defrule switch-sensor {:forall true :recheck true} [g]
   [sw<Switch> -!<:sensor>-> <>]
   (eset! sw :sensor (ecreate! nil 'Sensor)))
 
@@ -37,7 +37,7 @@
    -<:sensor>-> sensor --!<> route]
   (eadd! route :definedBy sensor))
 
-(defrule semaphore-neighbor {:forall [64 16] :recheck true} [g]
+(defrule semaphore-neighbor {:forall true :recheck true} [g]
   [route1<Route> -<:exit>-> semaphore
    route1 -<:definedBy>-> sensor1 -<:elements>-> te1
    -<:connectsTo>-> te2 -<:sensor>-> sensor2
