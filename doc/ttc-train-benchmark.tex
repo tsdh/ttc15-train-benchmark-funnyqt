@@ -8,9 +8,13 @@
 \usepackage{url}
 \usepackage{paralist}
 \usepackage{graphicx}
+
+\usepackage{relsize}
 \usepackage[cache]{minted}
-\newminted{clojure}{fontsize=\fontsize{8}{8},linenos,numbersep=3pt,numberblanklines=false}
-\newmintinline{clojure}{fontsize=\small}
+\setminted{fontsize=\fontsize{8}{8},breaklines=true,breakbytoken=true,autogobble,linenos,numbersep=3pt,numberblanklines=false,firstnumber=last}
+\setmintedinline{fontsize=\relscale{.9},breaklines=true,breakbytoken=true}
+\newminted{clojure}{}
+\newmintinline{clojure}{}
 \newcommand{\code}{\clojureinline}
 \VerbatimFootnotes
 
@@ -282,7 +286,7 @@ can pick it up.
 Then, in the FunnyQT glue project the rules and functions from above are
 referred to like shown in the next listing.
 
-\begin{minted}[fontsize=\fontsize{8}{8},linenos,numbersep=3pt,numberblanklines=false]{java}
+\begin{minted}[numbers=none]{java}
 private final static String SOLUTION_NS = "ttc15-train-benchmark-funnyqt.core";
 Clojure.var("clojure.core", "require").invoke(Clojure.read(SOLUTION_NS));
 final static IFn POS_LENGTH = Clojure.var(SOLUTION_NS, "pos-length");
@@ -292,19 +296,20 @@ final static IFn CALL_RULE_AS_TEST = Clojure.var(SOLUTION_NS, "call-rule-as-test
 
 In line 2, the solution namespace \code|ttc15-train-benchmark-funnyqt.core| is
 required\footnote{\code|require| is kind of Clojure's equivalent to Java's
-  \code|import| statement.}.  The \code|Clojure| class provides a minimal API
-for loading Clojure code from Java.  When requiring a namespace as above, it
-will be parsed and compiled to JVM byte-code just in time\footnote{If the
-  Clojure code was distributed in a pre-compiled form, the resulting classes
-  would simply be loaded.}.
+  \code|import| statement.}.  The \mintinline{Java}|Clojure| class provides a
+minimal API for loading Clojure code from Java.  When requiring a namespace as
+above, it will be parsed and compiled to JVM byte-code just in time\footnote{If
+  the Clojure code was distributed in a pre-compiled form, the resulting
+  classes would simply be loaded.}.
 
 Thereafter, the solution's in-place transformation rules and the
-\code|call-rule-as-test| function are referred to.  \code|IFn| is a Clojure
-interface whose instances are Clojure functions that can be called using the
-\code|invoke()| method as can be seen in the definition of the glue project's
-\code|BenchmarkCase.check()| method shown below.
+\code|call-rule-as-test| function are referred to.  \mintinline{Java}|IFn| is a
+Clojure interface whose instances are Clojure functions that can be called
+using the \mintinline{Java}|invoke()| method as can be seen in the definition
+of the glue project's \mintinline{Java}|BenchmarkCase.check()| method shown
+below.
 
-\begin{minted}[fontsize=\fontsize{8}{8},linenos,numbersep=3pt,numberblanklines=false]{java}
+\begin{minted}[numbers=none]{java}
 @Override
 protected final Collection<Object> check() throws IOException {
     matches = (Collection<Object>) FunnyQTBenchmarkLogic.CALL_RULE_AS_TEST
@@ -318,14 +323,16 @@ protected final Collection<Object> check() throws IOException {
 }
 \end{minted}
 
-In that code, \code|rule| is one of the rule \code|IFn|s \code|POS_LENGTH|,
-\code|SWITCH_SET|, et cetera, and they are called via the
+In that code, \mintinline{Java}|rule| is one of the rule
+\mintinline{Java}|IFn|s \mintinline{Java}|POS_LENGTH|,
+\mintinline{Java}|SWITCH_SET|, et cetera, and they are called via the
 \code|call-rule-as-test| function to make them return one thunk per match
 instead of performing the rules' repair actions immediately.
 
-The implementation of the \code|BenchmarkCase.modify()| method is even simpler.
+The implementation of the \mintinline{Java}|BenchmarkCase.modify()| method is
+even simpler.
 
-\begin{minted}[fontsize=\fontsize{8}{8},linenos,numbersep=3pt,numberblanklines=false]{java}
+\begin{minted}[numbers=none]{java}
 @Override
 protected final void modify(Collection<Object> matches) {
     for (Object m : matches) {
@@ -355,7 +362,7 @@ Lisp syntax.  However, there are some strong points with respect to
 readability.
 \begin{inparaenum}[(1)]
 \item The queries (patterns) and repair actions are bundled in one in-place
-  transformation rule each keeping the definition of cause and action
+  transformation rule each keeping the definition of cause and effect
   localized.
 \item FunnyQT's pattern matching DSL used to specify the rules' patterns is
   both concise and readable.  It should be easy to understand for graph
@@ -372,9 +379,14 @@ FunnyQT implements pattern matching as a local search.  Thus, each
 matches of all patterns are cached and updated when the model changes.  This
 makes FunnyQT not especially suited for incremental model validation scenarios.
 However, given the fact that the evaluation of forall-patterns is automatically
-parallelized on multi-core machines, the \emph{performance} is still quite
-good.  The benefit of FunnyQT's search-based approach is that it has far less
-memory requirements than an incremental approach.
+parallelized on multi-core machines, the \emph{performance} is still
+reasonable.  The benefit of FunnyQT's search-based approach is that it has far
+less memory requirements than an incremental approach.  When comparing the
+performance with the EMF-IncQuery solution on an 8-core machine with 32 GB RAM,
+FunnyQT was only about 15\% slower and could still transform models which
+already caused an \mintinline{Java}|OutOfMemoryError| with EMF-IncQuery.  But
+of course, when increasing the number of iterations, the performance benefit of
+incremental approaches will increase, too.
 
 
 \bibliographystyle{eptcs}
